@@ -1,656 +1,904 @@
-diff --git a/code b/code
-index ae693220258c27656a76b9371b9e2fe3ebd0110b..72e01c3c2a1e2f292fe27be643e96cea044cd91b 100644
---- a/code
-+++ b/code
-@@ -155,231 +155,310 @@
-         
-         button {
-             padding: 15px 30px;
-             font-size: 20px;
-             background-color: #4CAF50;
-             color: white;
-             border: none;
-             border-radius: 5px;
-             cursor: pointer;
-             margin: 10px;
-             transition: background-color 0.3s;
-         }
-         
-         button:hover {
-             background-color: #45a049;
-         }
-         
-         #gameOverScreen, #levelCompleteScreen {
-             display: none;
-         }
-         
-         .hidden {
-             display: none !important;
-         }
-         
--        #mobileInstructions {
-+        #mobileInstructions, #desktopInstructions {
-             margin-top: 20px;
-             text-align: center;
-             font-size: 14px;
-             color: #aaa;
-         }
-     </style>
- </head>
- <body>
-     <div id="gameContainer">
-         <canvas id="gameCanvas"></canvas>
-         
-         <div id="uiContainer">
-             <div id="levelInfo">Уровень: <span id="levelNum">1</span></div>
-             <div id="healthBar">
-                 <div id="healthFill"></div>
-             </div>
-             <div id="bossHealthBar" class="hidden">
-                 <div id="bossHealthFill"></div>
-             </div>
-         </div>
-         
--        <div id="controls">
-+        <div id="controls" class="hidden">
-             <div class="control-group">
-                 <div class="control-row">
-                     <div class="control-btn" id="upBtn">↑</div>
-                 </div>
-                 <div class="control-row">
-                     <div class="control-btn" id="leftBtn">←</div>
--                    <div class="control-btn" id="downBtn">↓</div>
-                     <div class="control-btn" id="rightBtn">→</div>
-                 </div>
-             </div>
-             <div class="control-group">
-                 <div class="control-btn" id="shootBtn">⚡</div>
-             </div>
-         </div>
-         
-         <div id="screen">
-             <h1 id="title">ПЛАТФОРМЕР-ФАЙТЕР</h1>
-             <p id="subtitle">Сразитесь с четырьмя могущественными боссами!</p>
-             <button id="startBtn">Начать игру</button>
--            <div id="mobileInstructions">
-+            <div id="mobileInstructions" class="hidden">
-                 Используйте кнопки для перемещения и стрельбы
-             </div>
-+            <div id="desktopInstructions" class="hidden">
-+                Используйте стрелки клавиатуры или WASD для движения и пробел для выстрела
-+            </div>
-         </div>
-         
-         <div id="gameOverScreen" class="screen">
-             <h1 id="title">ИГРА ОКОНЧЕНА</h1>
-             <p id="subtitle">Вы проиграли!</p>
-             <button id="restartBtn">Играть снова</button>
-         </div>
-         
-         <div id="levelCompleteScreen" class="screen">
-             <h1 id="title">УРОВЕНЬ ПРОЙДЕН!</h1>
-             <p id="subtitle">Приготовьтесь к следующему боссу</p>
-             <button id="nextLevelBtn">Следующий уровень</button>
-         </div>
-     </div>
- 
-     <script>
-         // Получаем элементы DOM
-         const canvas = document.getElementById('gameCanvas');
-         const ctx = canvas.getContext('2d');
-         const startScreen = document.getElementById('screen');
-         const gameOverScreen = document.getElementById('gameOverScreen');
-         const levelCompleteScreen = document.getElementById('levelCompleteScreen');
-         const startBtn = document.getElementById('startBtn');
-         const restartBtn = document.getElementById('restartBtn');
-         const nextLevelBtn = document.getElementById('nextLevelBtn');
-         const levelNum = document.getElementById('levelNum');
-         const healthFill = document.getElementById('healthFill');
-         const bossHealthBar = document.getElementById('bossHealthBar');
-         const bossHealthFill = document.getElementById('bossHealthFill');
-+        const controls = document.getElementById('controls');
-+        const mobileInstructions = document.getElementById('mobileInstructions');
-+        const desktopInstructions = document.getElementById('desktopInstructions');
-         
-         // Кнопки управления
-         const upBtn = document.getElementById('upBtn');
-         const leftBtn = document.getElementById('leftBtn');
-         const rightBtn = document.getElementById('rightBtn');
-         const shootBtn = document.getElementById('shootBtn');
-         
-         // Установка размеров canvas
-         function resizeCanvas() {
-             canvas.width = canvas.offsetWidth;
-             canvas.height = canvas.offsetHeight;
-         }
-         
-         resizeCanvas();
-         window.addEventListener('resize', resizeCanvas);
-         
-         // Игровые переменные
-         let gameRunning = false;
-         let currentLevel = 1;
-         let player;
-         let platforms = [];
-         let enemies = [];
-         let bullets = [];
-         let enemyBullets = [];
-         let boss = null;
-         let keys = {};
-         let touchControls = {
-             left: false,
-             right: false,
-             up: false,
-             shoot: false
-         };
-+
-+        function updateInputHints(isTouch) {
-+            if (isTouch) {
-+                controls.classList.remove('hidden');
-+                mobileInstructions.classList.remove('hidden');
-+                desktopInstructions.classList.add('hidden');
-+            } else {
-+                controls.classList.add('hidden');
-+                mobileInstructions.classList.add('hidden');
-+                desktopInstructions.classList.remove('hidden');
-+            }
-+        }
-+
-+        const pointerMedia = typeof window.matchMedia === 'function' ? window.matchMedia('(pointer: coarse)') : null;
-+        const supportsTouch = 'ontouchstart' in window || (typeof navigator !== 'undefined' && ((navigator.maxTouchPoints || navigator.msMaxTouchPoints || 0) > 0));
-+        updateInputHints((pointerMedia && pointerMedia.matches) || supportsTouch);
-+
-+        if (pointerMedia) {
-+            if (typeof pointerMedia.addEventListener === 'function') {
-+                pointerMedia.addEventListener('change', (event) => updateInputHints(event.matches));
-+            } else if (typeof pointerMedia.addListener === 'function') {
-+                pointerMedia.addListener((event) => updateInputHints(event.matches));
-+            }
-+        }
-+
-+        function resetTouchControls() {
-+            touchControls.left = false;
-+            touchControls.right = false;
-+            touchControls.up = false;
-+            touchControls.shoot = false;
-+        }
-+
-+        function setupControlButton(button, controlKey) {
-+            if (!button) return;
-+
-+            const activate = (event) => {
-+                if (event.type === 'pointerdown' && event.isPrimary === false) return;
-+                if (event.type.startsWith('mouse') && event.button !== 0) return;
-+                event.preventDefault();
-+                touchControls[controlKey] = true;
-+            };
-+
-+            const deactivate = (event) => {
-+                if (event.type.startsWith('mouse') && event.button !== undefined && event.button !== 0) return;
-+                event.preventDefault();
-+                touchControls[controlKey] = false;
-+            };
-+
-+            if (window.PointerEvent) {
-+                button.addEventListener('pointerdown', activate);
-+                button.addEventListener('pointerup', deactivate);
-+                button.addEventListener('pointercancel', deactivate);
-+                button.addEventListener('pointerleave', deactivate);
-+            } else {
-+                button.addEventListener('touchstart', activate, { passive: false });
-+                button.addEventListener('touchend', deactivate, { passive: false });
-+                button.addEventListener('touchcancel', deactivate, { passive: false });
-+                button.addEventListener('mousedown', activate);
-+                button.addEventListener('mouseup', deactivate);
-+                button.addEventListener('mouseleave', deactivate);
-+            }
-+
-+            button.addEventListener('contextmenu', (event) => event.preventDefault());
-+        }
-+
-+        setupControlButton(leftBtn, 'left');
-+        setupControlButton(rightBtn, 'right');
-+        setupControlButton(upBtn, 'up');
-+        setupControlButton(shootBtn, 'shoot');
-         
-         // Класс игрока
-         class Player {
-             constructor() {
-                 this.width = 40;
-                 this.height = 60;
-                 this.x = 100;
-                 this.y = canvas.height - 150;
-                 this.speed = 5;
-                 this.jumpPower = 15;
-                 this.velocityY = 0;
-                 this.isJumping = false;
-                 this.health = 100;
-                 this.facing = 'right';
-                 this.shootCooldown = 0;
-                 this.invincible = 0;
-             }
-             
-             update() {
-                 // Движение влево/вправо
--                if (keys['ArrowLeft'] || touchControls.left) {
-+                const moveLeft = keys['ArrowLeft'] || keys['a'] || touchControls.left;
-+                const moveRight = keys['ArrowRight'] || keys['d'] || touchControls.right;
-+                const jumpPressed = keys['ArrowUp'] || keys['w'] || touchControls.up;
-+                const shootPressed = keys[' '] || keys['Space'] || keys['space'] || keys['Spacebar'] || keys['spacebar'] || touchControls.shoot;
-+
-+                if (moveLeft) {
-                     this.x -= this.speed;
-                     this.facing = 'left';
-                 }
--                if (keys['ArrowRight'] || touchControls.right) {
-+                if (moveRight) {
-                     this.x += this.speed;
-                     this.facing = 'right';
-                 }
--                
-+
-                 // Прыжок
--                if ((keys['ArrowUp'] || touchControls.up) && !this.isJumping) {
-+                if (jumpPressed && !this.isJumping) {
-                     this.velocityY = -this.jumpPower;
-                     this.isJumping = true;
-                 }
-                 
-                 // Гравитация
-                 this.velocityY += 0.8;
-                 this.y += this.velocityY;
-                 
-                 // Ограничение по краям
-                 if (this.x < 0) this.x = 0;
-                 if (this.x > canvas.width - this.width) this.x = canvas.width - this.width;
-                 
-                 // Проверка столкновения с платформами
-                 let onGround = false;
-                 for (let platform of platforms) {
-                     if (this.x < platform.x + platform.width &&
-                         this.x + this.width > platform.x &&
-                         this.y + this.height > platform.y &&
-                         this.y + this.height < platform.y + platform.height &&
-                         this.velocityY > 0) {
-                         this.y = platform.y - this.height;
-                         this.velocityY = 0;
-                         this.isJumping = false;
-                         onGround = true;
-                     }
-                 }
-                 
-                 // Если игрок падает за пределы экрана
-                 if (this.y > canvas.height) {
-                     this.takeDamage(100);
-                 }
-                 
-                 // Обработка неуязвимости после получения урона
-                 if (this.invincible > 0) {
-                     this.invincible--;
-                 }
-                 
-                 // Обработка перезарядки выстрела
-                 if (this.shootCooldown > 0) {
-                     this.shootCooldown--;
-                 }
-                 
-                 // Стрельба
--                if ((keys[' '] || touchControls.shoot) && this.shootCooldown === 0) {
-+                if (shootPressed && this.shootCooldown === 0) {
-                     this.shoot();
-                     this.shootCooldown = 10;
-                 }
-             }
-             
-             shoot() {
-                 const bulletX = this.facing === 'right' ? this.x + this.width : this.x;
-                 bullets.push(new Bullet(bulletX, this.y + this.height / 2, this.facing));
-             }
-             
-             takeDamage(amount) {
-                 if (this.invincible === 0) {
-                     this.health -= amount;
-                     healthFill.style.width = this.health + '%';
-                     this.invincible = 30; // 0.5 секунды неуязвимости
-                     
-                     if (this.health <= 0) {
-                         gameOver();
-                     }
-                 }
-             }
-             
-             draw() {
-                 // Мигание при неуязвимости
-                 if (this.invincible > 0 && this.invincible % 6 < 3) return;
-@@ -626,50 +705,51 @@
-                         ctx.fillStyle = '#3498db';
-                         break;
-                     case 'boss4':
-                         ctx.fillStyle = '#c0392b';
-                         break;
-                 }
-                 
-                 ctx.fillRect(this.x, this.y, this.width, this.height);
-                 
-                 // Рисуем "лицо" для указания направления
-                 ctx.fillStyle = '#fff';
-                 if (this.direction === 1) {
-                     ctx.fillRect(this.x + this.width - 15, this.y + 15, 10, 10);
-                 } else {
-                     ctx.fillRect(this.x + 5, this.y + 15, 10, 10);
-                 }
-             }
-         }
-         
-         // Создание уровня
-         function createLevel(level) {
-             platforms = [];
-             enemies = [];
-             bullets = [];
-             enemyBullets = [];
-+            boss = null;
-             
-             // Создание платформ
-             platforms.push({x: 0, y: canvas.height - 50, width: canvas.width, height: 50});
-             
-             // Добавляем дополнительные платформы в зависимости от уровня
-             if (level === 1) {
-                 platforms.push({x: 200, y: canvas.height - 150, width: 100, height: 20});
-                 platforms.push({x: 400, y: canvas.height - 200, width: 100, height: 20});
-                 platforms.push({x: 600, y: canvas.height - 150, width: 100, height: 20});
-                 
-                 // Добавляем обычных врагов
-                 enemies.push(new Enemy(300, canvas.height - 110, 'normal'));
-                 enemies.push(new Enemy(500, canvas.height - 160, 'normal'));
-                 
-                 // Добавляем босса
-                 boss = new Enemy(canvas.width - 100, canvas.height - 110, 'boss1');
-                 enemies.push(boss);
-             }
-             else if (level === 2) {
-                 platforms.push({x: 150, y: canvas.height - 120, width: 80, height: 20});
-                 platforms.push({x: 300, y: canvas.height - 180, width: 80, height: 20});
-                 platforms.push({x: 450, y: canvas.height - 240, width: 80, height: 20});
-                 platforms.push({x: 600, y: canvas.height - 180, width: 80, height: 20});
-                 
-                 enemies.push(new Enemy(200, canvas.height - 130, 'normal'));
-@@ -689,216 +769,213 @@
-                 enemies.push(new Enemy(150, canvas.height - 110, 'normal'));
-                 enemies.push(new Enemy(300, canvas.height - 170, 'normal'));
-                 enemies.push(new Enemy(450, canvas.height - 230, 'normal'));
-                 enemies.push(new Enemy(600, canvas.height - 170, 'normal'));
-                 
-                 boss = new Enemy(canvas.width - 100, canvas.height - 110, 'boss3');
-                 enemies.push(boss);
-             }
-             else if (level === 4) {
-                 platforms.push({x: 50, y: canvas.height - 100, width: 60, height: 20});
-                 platforms.push({x: 200, y: canvas.height - 170, width: 60, height: 20});
-                 platforms.push({x: 350, y: canvas.height - 240, width: 60, height: 20});
-                 platforms.push({x: 500, y: canvas.height - 170, width: 60, height: 20});
-                 platforms.push({x: 650, y: canvas.height - 100, width: 60, height: 20});
-                 
-                 enemies.push(new Enemy(100, canvas.height - 110, 'normal'));
-                 enemies.push(new Enemy(250, canvas.height - 180, 'normal'));
-                 enemies.push(new Enemy(400, canvas.height - 250, 'normal'));
-                 enemies.push(new Enemy(550, canvas.height - 180, 'normal'));
-                 enemies.push(new Enemy(700, canvas.height - 110, 'normal'));
-                 
-                 boss = new Enemy(canvas.width - 120, canvas.height - 130, 'boss4');
-                 enemies.push(boss);
-             }
-             
--            // Показываем полоску здоровья босса
--            bossHealthBar.classList.remove('hidden');
--            bossHealthFill.style.width = '100%';
-+            // Показываем полоску здоровья босса, если он есть
-+            if (boss) {
-+                bossHealthBar.classList.remove('hidden');
-+                bossHealthFill.style.width = '100%';
-+            } else {
-+                bossHealthBar.classList.add('hidden');
-+            }
-             
-             // Обновляем информацию об уровне
-             levelNum.textContent = level;
-         }
-         
-         // Игровой цикл
-         function gameLoop() {
-             if (!gameRunning) return;
-             
-             // Очистка canvas
-             ctx.clearRect(0, 0, canvas.width, canvas.height);
-             
-             // Обновление и отрисовка игрока
-             player.update();
-             player.draw();
-             
-             // Обновление и отрисовка платформ
-             for (let platform of platforms) {
-                 ctx.fillStyle = '#27ae60';
-                 ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-             }
-             
-             // Обновление и отрисовка врагов
-             for (let i = enemies.length - 1; i >= 0; i--) {
--                enemies[i].update();
--                enemies[i].draw();
--                
-+                const enemy = enemies[i];
-+                enemy.update();
-+                enemy.draw();
-+
-                 // Проверка столкновения пуль с врагами
-                 for (let j = bullets.length - 1; j >= 0; j--) {
--                    if (enemies[i].checkCollision(bullets[j])) {
--                        if (enemies[i].takeDamage()) {
-+                    const bullet = bullets[j];
-+                    if (enemy.checkCollision(bullet)) {
-+                        const defeated = enemy.takeDamage();
-+                        bullets.splice(j, 1);
-+
-+                        if (defeated) {
-+                            const wasBoss = enemy.type.includes('boss');
-                             enemies.splice(i, 1);
--                            
--                            // Если это был босс
--                            if (enemies[i] && enemies[i].type.includes('boss')) {
-+
-+                            if (wasBoss) {
-+                                boss = null;
-+                                bossHealthBar.classList.add('hidden');
-                                 levelComplete();
--                                break;
-+                                return;
-                             }
-                         }
--                        bullets.splice(j, 1);
-                         break;
-                     }
-                 }
-             }
-             
-             // Обновление и отрисовка пуль игрока
-             for (let i = bullets.length - 1; i >= 0; i--) {
-                 if (!bullets[i].update()) {
-                     bullets.splice(i, 1);
-                 } else {
-                     bullets[i].draw();
-                 }
-             }
-             
-             // Обновление и отрисовка вражеских снарядов
-             for (let i = enemyBullets.length - 1; i >= 0; i--) {
-                 if (!enemyBullets[i].update()) {
-                     enemyBullets.splice(i, 1);
-                 } else {
-                     enemyBullets[i].draw();
-                 }
-             }
-             
-             // Проверка завершения уровня (все враги побеждены)
-             if (enemies.length === 0 && currentLevel < 4) {
-                 levelComplete();
-             } else if (enemies.length === 0 && currentLevel === 4) {
-                 gameWin();
-             }
-             
-             requestAnimationFrame(gameLoop);
-         }
-         
-         // Начало игры
-         function startGame() {
-             gameRunning = true;
-             currentLevel = 1;
-+            keys = {};
-+            resetTouchControls();
-             player = new Player();
-+            healthFill.style.width = '100%';
-+            bossHealthFill.style.width = '100%';
-+            bossHealthBar.classList.add('hidden');
-             createLevel(currentLevel);
-             startScreen.classList.add('hidden');
-             gameLoop();
-         }
--        
-+
-         // Завершение уровня
-         function levelComplete() {
-             gameRunning = false;
-+            resetTouchControls();
-+            bossHealthBar.classList.add('hidden');
-             if (currentLevel < 4) {
-                 levelCompleteScreen.classList.remove('hidden');
-             } else {
-                 gameWin();
-             }
-         }
-         
-         // Переход на следующий уровень
-         function nextLevel() {
-             currentLevel++;
-+            resetTouchControls();
-             player.health = 100;
-             healthFill.style.width = '100%';
-+            bossHealthFill.style.width = '100%';
-             createLevel(currentLevel);
-             levelCompleteScreen.classList.add('hidden');
-             gameRunning = true;
-             gameLoop();
-         }
-         
-         // Победа в игре
-         function gameWin() {
-             gameRunning = false;
-             alert('Поздравляем! Вы прошли все уровни!');
-             restartGame();
-         }
-         
-         // Конец игры
-         function gameOver() {
-             gameRunning = false;
-+            resetTouchControls();
-+            bossHealthBar.classList.add('hidden');
-             gameOverScreen.classList.remove('hidden');
-         }
--        
-+
-         // Перезапуск игры
-         function restartGame() {
-             gameOverScreen.classList.add('hidden');
-             levelCompleteScreen.classList.add('hidden');
-             startScreen.classList.remove('hidden');
-+            bossHealthBar.classList.add('hidden');
-+            bossHealthFill.style.width = '100%';
-+            healthFill.style.width = '100%';
-+            resetTouchControls();
-+            keys = {};
-         }
-         
-         // Обработчики событий
-         startBtn.addEventListener('click', startGame);
-         restartBtn.addEventListener('click', restartGame);
-         nextLevelBtn.addEventListener('click', nextLevel);
-         
-         // Обработка клавиатуры
-+        function setKeyState(event, isPressed) {
-+            const key = event.key;
-+            keys[key] = isPressed;
-+            const lowerKey = key && typeof key === 'string' ? key.toLowerCase() : null;
-+            if (lowerKey) {
-+                keys[lowerKey] = isPressed;
-+            }
-+
-+            if ([' ', 'Space', 'Spacebar', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
-+                event.preventDefault();
-+            }
-+        }
-+
-         window.addEventListener('keydown', (e) => {
--            keys[e.key] = true;
-+            setKeyState(e, true);
-         });
--        
-+
-         window.addEventListener('keyup', (e) => {
--            keys[e.key] = false;
--        });
--        
--        // Обработка сенсорного управления
--        leftBtn.addEventListener('touchstart', (e) => {
--            e.preventDefault();
--            touchControls.left = true;
--        });
--        
--        leftBtn.addEventListener('touchend', (e) => {
--            e.preventDefault();
--            touchControls.left = false;
--        });
--        
--        rightBtn.addEventListener('touchstart', (e) => {
--            e.preventDefault();
--            touchControls.right = true;
--        });
--        
--        rightBtn.addEventListener('touchend', (e) => {
--            e.preventDefault();
--            touchControls.right = false;
--        });
--        
--        upBtn.addEventListener('touchstart', (e) => {
--            e.preventDefault();
--            touchControls.up = true;
-+            setKeyState(e, false);
-         });
--        
--        upBtn.addEventListener('touchend', (e) => {
--            e.preventDefault();
--            touchControls.up = false;
--        });
--        
--        shootBtn.addEventListener('touchstart', (e) => {
--            e.preventDefault();
--            touchControls.shoot = true;
--        });
--        
--        shootBtn.addEventListener('touchend', (e) => {
--            e.preventDefault();
--            touchControls.shoot = false;
-+
-+        window.addEventListener('blur', () => {
-+            keys = {};
-+            resetTouchControls();
-         });
-         
--        // Предотвращение стандартного поведения при касании
--        document.querySelectorAll('.control-btn').forEach(btn => {
--            btn.addEventListener('touchstart', (e) => {
--                e.preventDefault();
--            });
--        });
-     </script>
- </body>
--</html>
-\ No newline at end of file
-+</html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Платформер-Файтер</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        
+        body {
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 80vh;
+        }
+        
+        #gameCanvas {
+            background-color: #111;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #uiContainer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+        }
+        
+        #healthBar, #bossHealthBar {
+            width: 200px;
+            height: 20px;
+            background-color: #333;
+            border: 2px solid #555;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        
+        #healthFill {
+            height: 100%;
+            width: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s;
+        }
+        
+        #bossHealthFill {
+            height: 100%;
+            width: 100%;
+            background-color: #f44336;
+            transition: width 0.3s;
+        }
+        
+        #levelInfo {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .control-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            margin: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        
+        .control-btn:active {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        #shootBtn {
+            background-color: rgba(255, 50, 50, 0.6);
+            width: 70px;
+            height: 70px;
+        }
+        
+        #shootBtn:active {
+            background-color: rgba(255, 50, 50, 0.8);
+        }
+        
+        #screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 20;
+        }
+        
+        #title {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #ffcc00;
+            text-shadow: 2px 2px 4px #000;
+        }
+        
+        #subtitle {
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #fff;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        #gameOverScreen, #levelCompleteScreen {
+            display: none;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        #mobileInstructions {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="uiContainer">
+            <div id="levelInfo">Уровень: <span id="levelNum">1</span></div>
+            <div id="healthBar">
+                <div id="healthFill"></div>
+            </div>
+            <div id="bossHealthBar" class="hidden">
+                <div id="bossHealthFill"></div>
+            </div>
+        </div>
+        
+        <div id="controls">
+            <div class="control-group">
+                <div class="control-row">
+                    <div class="control-btn" id="upBtn">↑</div>
+                </div>
+                <div class="control-row">
+                    <div class="control-btn" id="leftBtn">←</div>
+                    <div class="control-btn" id="downBtn">↓</div>
+                    <div class="control-btn" id="rightBtn">→</div>
+                </div>
+            </div>
+            <div class="control-group">
+                <div class="control-btn" id="shootBtn">⚡</div>
+            </div>
+        </div>
+        
+        <div id="screen">
+            <h1 id="title">ПЛАТФОРМЕР-ФАЙТЕР</h1>
+            <p id="subtitle">Сразитесь с четырьмя могущественными боссами!</p>
+            <button id="startBtn">Начать игру</button>
+            <div id="mobileInstructions">
+                Используйте кнопки для перемещения и стрельбы
+            </div>
+        </div>
+        
+        <div id="gameOverScreen" class="screen">
+            <h1 id="title">ИГРА ОКОНЧЕНА</h1>
+            <p id="subtitle">Вы проиграли!</p>
+            <button id="restartBtn">Играть снова</button>
+        </div>
+        
+        <div id="levelCompleteScreen" class="screen">
+            <h1 id="title">УРОВЕНЬ ПРОЙДЕН!</h1>
+            <p id="subtitle">Приготовьтесь к следующему боссу</p>
+            <button id="nextLevelBtn">Следующий уровень</button>
+        </div>
+    </div>
+
+    <script>
+        // Получаем элементы DOM
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('screen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const levelCompleteScreen = document.getElementById('levelCompleteScreen');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const nextLevelBtn = document.getElementById('nextLevelBtn');
+        const levelNum = document.getElementById('levelNum');
+        const healthFill = document.getElementById('healthFill');
+        const bossHealthBar = document.getElementById('bossHealthBar');
+        const bossHealthFill = document.getElementById('bossHealthFill');
+        
+        // Кнопки управления
+        const upBtn = document.getElementById('upBtn');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const shootBtn = document.getElementById('shootBtn');
+        
+        // Установка размеров canvas
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Игровые переменные
+        let gameRunning = false;
+        let currentLevel = 1;
+        let player;
+        let platforms = [];
+        let enemies = [];
+        let bullets = [];
+        let enemyBullets = [];
+        let boss = null;
+        let keys = {};
+        let touchControls = {
+            left: false,
+            right: false,
+            up: false,
+            shoot: false
+        };
+        
+        // Класс игрока
+        class Player {
+            constructor() {
+                this.width = 40;
+                this.height = 60;
+                this.x = 100;
+                this.y = canvas.height - 150;
+                this.speed = 5;
+                this.jumpPower = 15;
+                this.velocityY = 0;
+                this.isJumping = false;
+                this.health = 100;
+                this.facing = 'right';
+                this.shootCooldown = 0;
+                this.invincible = 0;
+            }
+            
+            update() {
+                // Движение влево/вправо
+                if (keys['ArrowLeft'] || touchControls.left) {
+                    this.x -= this.speed;
+                    this.facing = 'left';
+                }
+                if (keys['ArrowRight'] || touchControls.right) {
+                    this.x += this.speed;
+                    this.facing = 'right';
+                }
+                
+                // Прыжок
+                if ((keys['ArrowUp'] || touchControls.up) && !this.isJumping) {
+                    this.velocityY = -this.jumpPower;
+                    this.isJumping = true;
+                }
+                
+                // Гравитация
+                this.velocityY += 0.8;
+                this.y += this.velocityY;
+                
+                // Ограничение по краям
+                if (this.x < 0) this.x = 0;
+                if (this.x > canvas.width - this.width) this.x = canvas.width - this.width;
+                
+                // Проверка столкновения с платформами
+                let onGround = false;
+                for (let platform of platforms) {
+                    if (this.x < platform.x + platform.width &&
+                        this.x + this.width > platform.x &&
+                        this.y + this.height > platform.y &&
+                        this.y + this.height < platform.y + platform.height &&
+                        this.velocityY > 0) {
+                        this.y = platform.y - this.height;
+                        this.velocityY = 0;
+                        this.isJumping = false;
+                        onGround = true;
+                    }
+                }
+                
+                // Если игрок падает за пределы экрана
+                if (this.y > canvas.height) {
+                    this.takeDamage(100);
+                }
+                
+                // Обработка неуязвимости после получения урона
+                if (this.invincible > 0) {
+                    this.invincible--;
+                }
+                
+                // Обработка перезарядки выстрела
+                if (this.shootCooldown > 0) {
+                    this.shootCooldown--;
+                }
+                
+                // Стрельба
+                if ((keys[' '] || touchControls.shoot) && this.shootCooldown === 0) {
+                    this.shoot();
+                    this.shootCooldown = 10;
+                }
+            }
+            
+            shoot() {
+                const bulletX = this.facing === 'right' ? this.x + this.width : this.x;
+                bullets.push(new Bullet(bulletX, this.y + this.height / 2, this.facing));
+            }
+            
+            takeDamage(amount) {
+                if (this.invincible === 0) {
+                    this.health -= amount;
+                    healthFill.style.width = this.health + '%';
+                    this.invincible = 30; // 0.5 секунды неуязвимости
+                    
+                    if (this.health <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+            
+            draw() {
+                // Мигание при неуязвимости
+                if (this.invincible > 0 && this.invincible % 6 < 3) return;
+                
+                ctx.fillStyle = '#3498db';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Рисуем "лицо" для указания направления
+                ctx.fillStyle = '#fff';
+                if (this.facing === 'right') {
+                    ctx.fillRect(this.x + this.width - 15, this.y + 15, 10, 10);
+                } else {
+                    ctx.fillRect(this.x + 5, this.y + 15, 10, 10);
+                }
+            }
+        }
+        
+        // Класс пули
+        class Bullet {
+            constructor(x, y, direction) {
+                this.x = x;
+                this.y = y;
+                this.width = 10;
+                this.height = 5;
+                this.speed = 10;
+                this.direction = direction;
+            }
+            
+            update() {
+                if (this.direction === 'right') {
+                    this.x += this.speed;
+                } else {
+                    this.x -= this.speed;
+                }
+                
+                // Удаление пули, если она вышла за пределы экрана
+                return this.x > 0 && this.x < canvas.width;
+            }
+            
+            draw() {
+                ctx.fillStyle = '#ffcc00';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+        }
+        
+        // Класс врага
+        class Enemy {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.width = 40;
+                this.height = 60;
+                this.type = type; // 'normal', 'boss1', 'boss2', 'boss3', 'boss4'
+                this.health = type === 'normal' ? 1 : 3;
+                this.speed = 2;
+                this.attackCooldown = 0;
+                this.direction = -1;
+            }
+            
+            update() {
+                // Движение к игроку для обычных врагов
+                if (this.type === 'normal') {
+                    if (player.x < this.x) {
+                        this.x -= this.speed;
+                        this.direction = -1;
+                    } else {
+                        this.x += this.speed;
+                        this.direction = 1;
+                    }
+                }
+                
+                // Логика для боссов
+                if (this.type.includes('boss')) {
+                    this.bossBehavior();
+                }
+                
+                // Обработка перезарядки атаки
+                if (this.attackCooldown > 0) {
+                    this.attackCooldown--;
+                }
+                
+                // Проверка столкновения с игроком
+                if (this.checkCollision(player) && player.invincible === 0) {
+                    const damage = this.type === 'boss4' ? 100 : 20;
+                    player.takeDamage(damage);
+                }
+            }
+            
+            bossBehavior() {
+                switch(this.type) {
+                    case 'boss1':
+                        // Быстрые удары - быстро движется к игроку
+                        if (player.x < this.x) {
+                            this.x -= this.speed * 1.5;
+                        } else {
+                            this.x += this.speed * 1.5;
+                        }
+                        
+                        // Атака каждые 60 кадров
+                        if (this.attackCooldown === 0) {
+                            this.attackCooldown = 60;
+                        }
+                        break;
+                        
+                    case 'boss2':
+                        // Кидает предметы по баллистической траектории
+                        if (this.attackCooldown === 0) {
+                            this.throwProjectile();
+                            this.attackCooldown = 120;
+                        }
+                        break;
+                        
+                    case 'boss3':
+                        // Стреляет из пистолета
+                        if (this.attackCooldown === 0) {
+                            this.shoot();
+                            this.attackCooldown = 90;
+                        }
+                        break;
+                        
+                    case 'boss4':
+                        // Очень большой и медленный
+                        this.width = 80;
+                        this.height = 120;
+                        if (player.x < this.x) {
+                            this.x -= this.speed * 0.7;
+                        } else {
+                            this.x += this.speed * 0.7;
+                        }
+                        break;
+                }
+            }
+            
+            throwProjectile() {
+                // Создаем снаряд с баллистической траекторией
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const power = 0.1;
+                
+                enemyBullets.push({
+                    x: this.x,
+                    y: this.y,
+                    width: 20,
+                    height: 20,
+                    velocityX: dx * power,
+                    velocityY: dy * power,
+                    gravity: 0.2,
+                    update: function() {
+                        this.x += this.velocityX;
+                        this.y += this.velocityY;
+                        this.velocityY += this.gravity;
+                        
+                        // Проверка столкновения с игроком
+                        if (this.checkCollision(player) && player.invincible === 0) {
+                            player.takeDamage(20);
+                            return false;
+                        }
+                        
+                        // Удаление если вышло за пределы экрана
+                        return this.x > 0 && this.x < canvas.width && this.y < canvas.height;
+                    },
+                    draw: function() {
+                        ctx.fillStyle = '#8e44ad';
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.width/2, 0, Math.PI * 2);
+                        ctx.fill();
+                    },
+                    checkCollision: function(obj) {
+                        return this.x < obj.x + obj.width &&
+                               this.x + this.width > obj.x &&
+                               this.y < obj.y + obj.height &&
+                               this.y + this.height > obj.y;
+                    }
+                });
+            }
+            
+            shoot() {
+                // Стрельба в сторону игрока
+                const direction = player.x < this.x ? -1 : 1;
+                enemyBullets.push({
+                    x: this.x,
+                    y: this.y + this.height / 2,
+                    width: 15,
+                    height: 8,
+                    speed: 7,
+                    direction: direction,
+                    update: function() {
+                        this.x += this.speed * this.direction;
+                        
+                        // Проверка столкновения с игроком
+                        if (this.checkCollision(player) && player.invincible === 0) {
+                            player.takeDamage(20);
+                            return false;
+                        }
+                        
+                        // Удаление если вышло за пределы экрана
+                        return this.x > 0 && this.x < canvas.width;
+                    },
+                    draw: function() {
+                        ctx.fillStyle = '#e74c3c';
+                        ctx.fillRect(this.x, this.y, this.width, this.height);
+                    },
+                    checkCollision: function(obj) {
+                        return this.x < obj.x + obj.width &&
+                               this.x + this.width > obj.x &&
+                               this.y < obj.y + obj.height &&
+                               this.y + this.height > obj.y;
+                    }
+                });
+            }
+            
+            takeDamage() {
+                this.health--;
+                
+                // Обновление полоски здоровья босса
+                if (this.type.includes('boss')) {
+                    const healthPercent = (this.health / 3) * 100;
+                    bossHealthFill.style.width = healthPercent + '%';
+                }
+                
+                return this.health <= 0;
+            }
+            
+            checkCollision(obj) {
+                return this.x < obj.x + obj.width &&
+                       this.x + this.width > obj.x &&
+                       this.y < obj.y + obj.height &&
+                       this.y + this.height > obj.y;
+            }
+            
+            draw() {
+                // Разные цвета для разных типов врагов
+                switch(this.type) {
+                    case 'normal':
+                        ctx.fillStyle = '#e74c3c';
+                        break;
+                    case 'boss1':
+                        ctx.fillStyle = '#f39c12';
+                        break;
+                    case 'boss2':
+                        ctx.fillStyle = '#9b59b6';
+                        break;
+                    case 'boss3':
+                        ctx.fillStyle = '#3498db';
+                        break;
+                    case 'boss4':
+                        ctx.fillStyle = '#c0392b';
+                        break;
+                }
+                
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Рисуем "лицо" для указания направления
+                ctx.fillStyle = '#fff';
+                if (this.direction === 1) {
+                    ctx.fillRect(this.x + this.width - 15, this.y + 15, 10, 10);
+                } else {
+                    ctx.fillRect(this.x + 5, this.y + 15, 10, 10);
+                }
+            }
+        }
+        
+        // Создание уровня
+        function createLevel(level) {
+            platforms = [];
+            enemies = [];
+            bullets = [];
+            enemyBullets = [];
+            
+            // Создание платформ
+            platforms.push({x: 0, y: canvas.height - 50, width: canvas.width, height: 50});
+            
+            // Добавляем дополнительные платформы в зависимости от уровня
+            if (level === 1) {
+                platforms.push({x: 200, y: canvas.height - 150, width: 100, height: 20});
+                platforms.push({x: 400, y: canvas.height - 200, width: 100, height: 20});
+                platforms.push({x: 600, y: canvas.height - 150, width: 100, height: 20});
+                
+                // Добавляем обычных врагов
+                enemies.push(new Enemy(300, canvas.height - 110, 'normal'));
+                enemies.push(new Enemy(500, canvas.height - 160, 'normal'));
+                
+                // Добавляем босса
+                boss = new Enemy(canvas.width - 100, canvas.height - 110, 'boss1');
+                enemies.push(boss);
+            }
+            else if (level === 2) {
+                platforms.push({x: 150, y: canvas.height - 120, width: 80, height: 20});
+                platforms.push({x: 300, y: canvas.height - 180, width: 80, height: 20});
+                platforms.push({x: 450, y: canvas.height - 240, width: 80, height: 20});
+                platforms.push({x: 600, y: canvas.height - 180, width: 80, height: 20});
+                
+                enemies.push(new Enemy(200, canvas.height - 130, 'normal'));
+                enemies.push(new Enemy(350, canvas.height - 190, 'normal'));
+                enemies.push(new Enemy(500, canvas.height - 250, 'normal'));
+                
+                boss = new Enemy(canvas.width - 100, canvas.height - 130, 'boss2');
+                enemies.push(boss);
+            }
+            else if (level === 3) {
+                platforms.push({x: 100, y: canvas.height - 100, width: 70, height: 20});
+                platforms.push({x: 250, y: canvas.height - 160, width: 70, height: 20});
+                platforms.push({x: 400, y: canvas.height - 220, width: 70, height: 20});
+                platforms.push({x: 550, y: canvas.height - 160, width: 70, height: 20});
+                platforms.push({x: 700, y: canvas.height - 100, width: 70, height: 20});
+                
+                enemies.push(new Enemy(150, canvas.height - 110, 'normal'));
+                enemies.push(new Enemy(300, canvas.height - 170, 'normal'));
+                enemies.push(new Enemy(450, canvas.height - 230, 'normal'));
+                enemies.push(new Enemy(600, canvas.height - 170, 'normal'));
+                
+                boss = new Enemy(canvas.width - 100, canvas.height - 110, 'boss3');
+                enemies.push(boss);
+            }
+            else if (level === 4) {
+                platforms.push({x: 50, y: canvas.height - 100, width: 60, height: 20});
+                platforms.push({x: 200, y: canvas.height - 170, width: 60, height: 20});
+                platforms.push({x: 350, y: canvas.height - 240, width: 60, height: 20});
+                platforms.push({x: 500, y: canvas.height - 170, width: 60, height: 20});
+                platforms.push({x: 650, y: canvas.height - 100, width: 60, height: 20});
+                
+                enemies.push(new Enemy(100, canvas.height - 110, 'normal'));
+                enemies.push(new Enemy(250, canvas.height - 180, 'normal'));
+                enemies.push(new Enemy(400, canvas.height - 250, 'normal'));
+                enemies.push(new Enemy(550, canvas.height - 180, 'normal'));
+                enemies.push(new Enemy(700, canvas.height - 110, 'normal'));
+                
+                boss = new Enemy(canvas.width - 120, canvas.height - 130, 'boss4');
+                enemies.push(boss);
+            }
+            
+            // Показываем полоску здоровья босса
+            bossHealthBar.classList.remove('hidden');
+            bossHealthFill.style.width = '100%';
+            
+            // Обновляем информацию об уровне
+            levelNum.textContent = level;
+        }
+        
+        // Игровой цикл
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Очистка canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Обновление и отрисовка игрока
+            player.update();
+            player.draw();
+            
+            // Обновление и отрисовка платформ
+            for (let platform of platforms) {
+                ctx.fillStyle = '#27ae60';
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+            }
+            
+            // Обновление и отрисовка врагов
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                enemies[i].update();
+                enemies[i].draw();
+                
+                // Проверка столкновения пуль с врагами
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    if (enemies[i].checkCollision(bullets[j])) {
+                        if (enemies[i].takeDamage()) {
+                            enemies.splice(i, 1);
+                            
+                            // Если это был босс
+                            if (enemies[i] && enemies[i].type.includes('boss')) {
+                                levelComplete();
+                                break;
+                            }
+                        }
+                        bullets.splice(j, 1);
+                        break;
+                    }
+                }
+            }
+            
+            // Обновление и отрисовка пуль игрока
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                if (!bullets[i].update()) {
+                    bullets.splice(i, 1);
+                } else {
+                    bullets[i].draw();
+                }
+            }
+            
+            // Обновление и отрисовка вражеских снарядов
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                if (!enemyBullets[i].update()) {
+                    enemyBullets.splice(i, 1);
+                } else {
+                    enemyBullets[i].draw();
+                }
+            }
+            
+            // Проверка завершения уровня (все враги побеждены)
+            if (enemies.length === 0 && currentLevel < 4) {
+                levelComplete();
+            } else if (enemies.length === 0 && currentLevel === 4) {
+                gameWin();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Начало игры
+        function startGame() {
+            gameRunning = true;
+            currentLevel = 1;
+            player = new Player();
+            createLevel(currentLevel);
+            startScreen.classList.add('hidden');
+            gameLoop();
+        }
+        
+        // Завершение уровня
+        function levelComplete() {
+            gameRunning = false;
+            if (currentLevel < 4) {
+                levelCompleteScreen.classList.remove('hidden');
+            } else {
+                gameWin();
+            }
+        }
+        
+        // Переход на следующий уровень
+        function nextLevel() {
+            currentLevel++;
+            player.health = 100;
+            healthFill.style.width = '100%';
+            createLevel(currentLevel);
+            levelCompleteScreen.classList.add('hidden');
+            gameRunning = true;
+            gameLoop();
+        }
+        
+        // Победа в игре
+        function gameWin() {
+            gameRunning = false;
+            alert('Поздравляем! Вы прошли все уровни!');
+            restartGame();
+        }
+        
+        // Конец игры
+        function gameOver() {
+            gameRunning = false;
+            gameOverScreen.classList.remove('hidden');
+        }
+        
+        // Перезапуск игры
+        function restartGame() {
+            gameOverScreen.classList.add('hidden');
+            levelCompleteScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+        
+        // Обработчики событий
+        startBtn.addEventListener('click', startGame);
+        restartBtn.addEventListener('click', restartGame);
+        nextLevelBtn.addEventListener('click', nextLevel);
+        
+        // Обработка клавиатуры
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // Обработка сенсорного управления
+        leftBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchControls.left = true;
+        });
+        
+        leftBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            touchControls.left = false;
+        });
+        
+        rightBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchControls.right = true;
+        });
+        
+        rightBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            touchControls.right = false;
+        });
+        
+        upBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchControls.up = true;
+        });
+        
+        upBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            touchControls.up = false;
+        });
+        
+        shootBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchControls.shoot = true;
+        });
+        
+        shootBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            touchControls.shoot = false;
+        });
+        
+        // Предотвращение стандартного поведения при касании
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+            });
+        });
+    </script>
+</body>
+</html>
