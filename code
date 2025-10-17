@@ -77,55 +77,47 @@
             font-weight: bold;
         }
 
-        #controls {
+        #joystickWrapper {
             position: absolute;
             bottom: 24px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
             justify-content: center;
-            z-index: 15;
             width: 100%;
             pointer-events: none;
+            z-index: 15;
         }
 
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        #joystickBase {
+            width: 150px;
+            height: 150px;
+            background-color: rgba(148, 163, 184, 0.18);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            position: relative;
             pointer-events: auto;
+            touch-action: none;
+            box-shadow: inset 0 0 16px rgba(15, 23, 42, 0.6);
         }
 
-        .control-row {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            margin-bottom: 12px;
+        #joystickBase.active {
+            border-color: rgba(148, 197, 255, 0.6);
+            box-shadow: inset 0 0 22px rgba(37, 99, 235, 0.55);
         }
 
-        .middle-row {
-            margin-bottom: 0;
-        }
-
-        .control-btn {
+        #joystickHandle {
             width: 70px;
             height: 70px;
-            background-color: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.35);
             border-radius: 50%;
-            color: white;
-            font-size: 28px;
-            margin: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none;
-        }
-
-        .control-btn:active {
-            background-color: rgba(255, 255, 255, 0.35);
+            background: radial-gradient(circle at 30% 30%, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.75));
+            border: 2px solid rgba(255, 255, 255, 0.45);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.08s ease-out;
+            box-shadow: 0 0 14px rgba(59, 130, 246, 0.35);
         }
 
         #screen {
@@ -205,10 +197,14 @@
         }
 
         @media (max-width: 768px) {
-            .control-btn {
+            #joystickBase {
+                width: 130px;
+                height: 130px;
+            }
+
+            #joystickHandle {
                 width: 60px;
                 height: 60px;
-                font-size: 24px;
             }
 
             #healthBar, #bossHealthBar {
@@ -232,16 +228,9 @@
             </div>
         </div>
 
-        <div id="controls" class="hidden">
-            <div class="control-group">
-                <div class="control-row">
-                    <div class="control-btn" id="upBtn">↑</div>
-                </div>
-                <div class="control-row middle-row">
-                    <div class="control-btn" id="leftBtn">←</div>
-                    <div class="control-btn" id="downBtn">↓</div>
-                    <div class="control-btn" id="rightBtn">→</div>
-                </div>
+        <div id="joystickWrapper" class="hidden">
+            <div id="joystickBase">
+                <div id="joystickHandle"></div>
             </div>
         </div>
 
@@ -250,17 +239,17 @@
             <p id="subtitle">Двигайтесь по полю, избегайте врагов и уничтожайте боссов!</p>
             <button id="startBtn">Начать игру</button>
             <div id="mobileInstructions" class="hidden">
-                Касайтесь джойстика для движения, атаки происходят автоматически рядом с героем.
+                Касайтесь джойстика для движения, атаки происходят автоматически вокруг героя.
             </div>
             <div id="desktopInstructions" class="hidden">
-                Используйте WASD или стрелки для движения. Атаки происходят автоматически в сторону взгляда.
+                Используйте WASD или стрелки для движения. Атаки происходят автоматически вокруг героя.
             </div>
         </div>
 
         <div id="gameOverScreen" class="screen">
             <h1 id="title">ИГРА ОКОНЧЕНА</h1>
             <p id="subtitle">Вас настигли враги!</p>
-            <button id="restartBtn">Перезапустить</button>
+            <button id="retryBtn">Заново</button>
         </div>
 
         <div id="levelCompleteScreen" class="screen">
@@ -277,20 +266,17 @@
         const gameOverScreen = document.getElementById('gameOverScreen');
         const levelCompleteScreen = document.getElementById('levelCompleteScreen');
         const startBtn = document.getElementById('startBtn');
-        const restartBtn = document.getElementById('restartBtn');
+        const retryBtn = document.getElementById('retryBtn');
         const nextLevelBtn = document.getElementById('nextLevelBtn');
         const levelNum = document.getElementById('levelNum');
         const healthFill = document.getElementById('healthFill');
         const bossHealthBar = document.getElementById('bossHealthBar');
         const bossHealthFill = document.getElementById('bossHealthFill');
-        const controls = document.getElementById('controls');
+        const joystickWrapper = document.getElementById('joystickWrapper');
+        const joystickBase = document.getElementById('joystickBase');
+        const joystickHandle = document.getElementById('joystickHandle');
         const mobileInstructions = document.getElementById('mobileInstructions');
         const desktopInstructions = document.getElementById('desktopInstructions');
-
-        const upBtn = document.getElementById('upBtn');
-        const downBtn = document.getElementById('downBtn');
-        const leftBtn = document.getElementById('leftBtn');
-        const rightBtn = document.getElementById('rightBtn');
 
         function resizeCanvas() {
             canvas.width = canvas.offsetWidth;
@@ -307,22 +293,24 @@
         let boss = null;
         let attacks = [];
         let keys = {};
-        let touchControls = {
-            left: false,
-            right: false,
-            up: false,
-            down: false
+        const joystickState = {
+            active: false,
+            pointerId: null,
+            vectorX: 0,
+            vectorY: 0,
+            magnitude: 0
         };
 
         function updateInputHints(isTouch) {
             if (isTouch) {
-                controls.classList.remove('hidden');
+                joystickWrapper.classList.remove('hidden');
                 mobileInstructions.classList.remove('hidden');
                 desktopInstructions.classList.add('hidden');
             } else {
-                controls.classList.add('hidden');
+                joystickWrapper.classList.add('hidden');
                 mobileInstructions.classList.add('hidden');
                 desktopInstructions.classList.remove('hidden');
+                resetJoystick();
             }
         }
 
@@ -338,50 +326,138 @@
             }
         }
 
-        function resetTouchControls() {
-            touchControls.left = false;
-            touchControls.right = false;
-            touchControls.up = false;
-            touchControls.down = false;
+        function resetJoystick() {
+            joystickState.active = false;
+            joystickState.pointerId = null;
+            joystickState.vectorX = 0;
+            joystickState.vectorY = 0;
+            joystickState.magnitude = 0;
+            if (joystickHandle) {
+                joystickHandle.style.transform = 'translate(-50%, -50%)';
+            }
+            if (joystickBase) {
+                joystickBase.classList.remove('active');
+            }
         }
 
-        function setupControlButton(button, controlKey) {
-            if (!button) return;
+        function updateJoystickFromPosition(clientX, clientY) {
+            if (!joystickBase || !joystickHandle) return;
 
-            const activate = (event) => {
-                if (event.type === 'pointerdown' && event.isPrimary === false) return;
-                if (event.type.startsWith('mouse') && event.button !== 0) return;
-                event.preventDefault();
-                touchControls[controlKey] = true;
-            };
+            const rect = joystickBase.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const maxDistance = rect.width / 2;
+            if (maxDistance <= 0) {
+                joystickState.vectorX = 0;
+                joystickState.vectorY = 0;
+                joystickState.magnitude = 0;
+                joystickHandle.style.transform = 'translate(-50%, -50%)';
+                return;
+            }
+            let dx = clientX - centerX;
+            let dy = clientY - centerY;
+            const distance = Math.hypot(dx, dy);
+            const clampedDistance = Math.min(distance, maxDistance);
+            const deadZone = maxDistance * 0.12;
 
-            const deactivate = (event) => {
-                if (event.type.startsWith('mouse') && event.button !== undefined && event.button !== 0) return;
-                event.preventDefault();
-                touchControls[controlKey] = false;
-            };
-
-            if (window.PointerEvent) {
-                button.addEventListener('pointerdown', activate);
-                button.addEventListener('pointerup', deactivate);
-                button.addEventListener('pointercancel', deactivate);
-                button.addEventListener('pointerleave', deactivate);
-            } else {
-                button.addEventListener('touchstart', activate, { passive: false });
-                button.addEventListener('touchend', deactivate, { passive: false });
-                button.addEventListener('touchcancel', deactivate, { passive: false });
-                button.addEventListener('mousedown', activate);
-                button.addEventListener('mouseup', deactivate);
-                button.addEventListener('mouseleave', deactivate);
+            if (clampedDistance <= deadZone) {
+                joystickState.vectorX = 0;
+                joystickState.vectorY = 0;
+                joystickState.magnitude = 0;
+                joystickHandle.style.transform = 'translate(-50%, -50%)';
+                return;
             }
 
-            button.addEventListener('contextmenu', (event) => event.preventDefault());
+            const rawX = dx / maxDistance;
+            const rawY = dy / maxDistance;
+            const length = Math.hypot(rawX, rawY) || 1;
+            const directionX = rawX / length;
+            const directionY = rawY / length;
+            const magnitude = Math.min(1, clampedDistance / maxDistance);
+
+            joystickState.vectorX = directionX * magnitude;
+            joystickState.vectorY = directionY * magnitude;
+            joystickState.magnitude = magnitude;
+
+            const handleLimit = maxDistance - (joystickHandle.offsetWidth / 2 || 0);
+            const handleDistance = Math.min(handleLimit, clampedDistance);
+            const offsetX = directionX * handleDistance;
+            const offsetY = directionY * handleDistance;
+            joystickHandle.style.transform = `translate(-50%, -50%) translate(${offsetX}px, ${offsetY}px)`;
         }
 
-        setupControlButton(leftBtn, 'left');
-        setupControlButton(rightBtn, 'right');
-        setupControlButton(upBtn, 'up');
-        setupControlButton(downBtn, 'down');
+        function handleJoystickPointerDown(event) {
+            if (!joystickBase) return;
+            if (event.isPrimary === false) return;
+            event.preventDefault();
+            joystickState.active = true;
+            joystickState.pointerId = event.pointerId;
+            joystickBase.classList.add('active');
+            if (typeof joystickBase.setPointerCapture === 'function') {
+                try {
+                    joystickBase.setPointerCapture(event.pointerId);
+                } catch (err) {}
+            }
+            updateJoystickFromPosition(event.clientX, event.clientY);
+        }
+
+        function handleJoystickPointerMove(event) {
+            if (!joystickState.active || event.pointerId !== joystickState.pointerId) return;
+            event.preventDefault();
+            updateJoystickFromPosition(event.clientX, event.clientY);
+        }
+
+        function handleJoystickPointerUp(event) {
+            if (event.pointerId !== joystickState.pointerId) return;
+            event.preventDefault();
+            if (joystickBase && typeof joystickBase.releasePointerCapture === 'function') {
+                try {
+                    joystickBase.releasePointerCapture(event.pointerId);
+                } catch (err) {}
+            }
+            resetJoystick();
+        }
+
+        function setupJoystickControls() {
+            if (!joystickBase) return;
+
+            if (window.PointerEvent) {
+                joystickBase.addEventListener('pointerdown', handleJoystickPointerDown);
+                joystickBase.addEventListener('pointermove', handleJoystickPointerMove);
+                joystickBase.addEventListener('pointerup', handleJoystickPointerUp);
+                joystickBase.addEventListener('pointercancel', handleJoystickPointerUp);
+            } else {
+                const getPrimaryTouch = (event) => event.touches[0] || event.changedTouches[0];
+
+                joystickBase.addEventListener('touchstart', (event) => {
+                    const touch = getPrimaryTouch(event);
+                    if (!touch) return;
+                    event.preventDefault();
+                    joystickState.active = true;
+                    joystickBase.classList.add('active');
+                    updateJoystickFromPosition(touch.clientX, touch.clientY);
+                }, { passive: false });
+
+                joystickBase.addEventListener('touchmove', (event) => {
+                    if (!joystickState.active) return;
+                    const touch = getPrimaryTouch(event);
+                    if (!touch) return;
+                    event.preventDefault();
+                    updateJoystickFromPosition(touch.clientX, touch.clientY);
+                }, { passive: false });
+
+                const endHandler = (event) => {
+                    if (!joystickState.active) return;
+                    event.preventDefault();
+                    resetJoystick();
+                };
+
+                joystickBase.addEventListener('touchend', endHandler, { passive: false });
+                joystickBase.addEventListener('touchcancel', endHandler, { passive: false });
+            }
+        }
+
+        setupJoystickControls();
 
         class Player {
             constructor() {
@@ -396,10 +472,10 @@
             }
 
             update() {
-                const moveLeft = keys['ArrowLeft'] || keys['a'] || touchControls.left;
-                const moveRight = keys['ArrowRight'] || keys['d'] || touchControls.right;
-                const moveUp = keys['ArrowUp'] || keys['w'] || touchControls.up;
-                const moveDown = keys['ArrowDown'] || keys['s'] || touchControls.down;
+                const moveLeft = keys['ArrowLeft'] || keys['a'];
+                const moveRight = keys['ArrowRight'] || keys['d'];
+                const moveUp = keys['ArrowUp'] || keys['w'];
+                const moveDown = keys['ArrowDown'] || keys['s'];
 
                 let dx = 0;
                 let dy = 0;
@@ -409,13 +485,17 @@
                 if (moveUp) dy -= 1;
                 if (moveDown) dy += 1;
 
-                if (dx !== 0 || dy !== 0) {
+                dx += joystickState.vectorX;
+                dy += joystickState.vectorY;
+
+                if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
                     const length = Math.hypot(dx, dy);
-                    dx /= length;
-                    dy /= length;
-                    this.x += dx * this.speed;
-                    this.y += dy * this.speed;
-                    this.facingAngle = Math.atan2(dy, dx);
+                    const speedMultiplier = Math.min(1, length);
+                    const normalizedDx = dx / (length || 1);
+                    const normalizedDy = dy / (length || 1);
+                    this.x += normalizedDx * this.speed * speedMultiplier;
+                    this.y += normalizedDy * this.speed * speedMultiplier;
+                    this.facingAngle = Math.atan2(normalizedDy, normalizedDx);
                 }
 
                 this.x = Math.min(canvas.width - this.radius, Math.max(this.radius, this.x));
@@ -433,17 +513,15 @@
             }
 
             autoAttack() {
-                const attackRange = 32;
-                const offset = this.radius + 18;
-                const attackX = this.x + Math.cos(this.facingAngle) * offset;
-                const attackY = this.y + Math.sin(this.facingAngle) * offset;
+                const attackRange = this.radius + 28;
                 attacks.push({
-                    x: attackX,
-                    y: attackY,
+                    x: this.x,
+                    y: this.y,
                     radius: attackRange,
                     life: 12,
                     damage: 2,
-                    hitIds: new Set()
+                    hitIds: new Set(),
+                    followPlayer: true
                 });
                 this.attackCooldown = 24;
             }
@@ -613,6 +691,11 @@
                 const attack = attacks[i];
                 attack.life--;
 
+                if (attack.followPlayer && player) {
+                    attack.x = player.x;
+                    attack.y = player.y;
+                }
+
                 ctx.save();
                 ctx.globalAlpha = 0.25;
                 ctx.fillStyle = '#fde68a';
@@ -736,11 +819,20 @@
             requestAnimationFrame(gameLoop);
         }
 
+        function resetGameState() {
+            gameRunning = false;
+            attacks = [];
+            enemies = [];
+            boss = null;
+            Enemy.idCounter = 0;
+            keys = {};
+            resetJoystick();
+        }
+
         function startGame() {
+            resetGameState();
             gameRunning = true;
             currentLevel = 1;
-            keys = {};
-            resetTouchControls();
             player = new Player();
             healthFill.style.width = '100%';
             bossHealthFill.style.width = '100%';
@@ -754,14 +846,14 @@
 
         function levelComplete() {
             gameRunning = false;
-            resetTouchControls();
+            resetJoystick();
             bossHealthBar.classList.add('hidden');
             levelCompleteScreen.classList.remove('hidden');
         }
 
         function nextLevel() {
             currentLevel++;
-            resetTouchControls();
+            resetJoystick();
             player.health = 100;
             player.invincible = 0;
             player.attackCooldown = 0;
@@ -784,26 +876,27 @@
         function gameOver() {
             if (!gameRunning) return;
             gameRunning = false;
-            resetTouchControls();
+            resetJoystick();
             bossHealthBar.classList.add('hidden');
             levelCompleteScreen.classList.add('hidden');
             gameOverScreen.classList.remove('hidden');
         }
 
         function restartGame() {
+            resetGameState();
+            currentLevel = 1;
+            levelNum.textContent = currentLevel;
             gameOverScreen.classList.add('hidden');
             levelCompleteScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
             bossHealthBar.classList.add('hidden');
             bossHealthFill.style.width = '100%';
             healthFill.style.width = '100%';
-            resetTouchControls();
-            keys = {};
             gameRunning = false;
         }
 
         startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', startGame);
+        retryBtn.addEventListener('click', startGame);
         nextLevelBtn.addEventListener('click', nextLevel);
 
         function setKeyState(event, isPressed) {
@@ -829,7 +922,7 @@
 
         window.addEventListener('blur', () => {
             keys = {};
-            resetTouchControls();
+            resetJoystick();
         });
     </script>
 </body>
