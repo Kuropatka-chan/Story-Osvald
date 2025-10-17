@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Платформер-Файтер</title>
+    <title>Топ-даун Арена</title>
     <style>
         * {
             margin: 0;
@@ -11,9 +11,9 @@
             box-sizing: border-box;
             touch-action: manipulation;
         }
-        
+
         body {
-            background-color: #222;
+            background-color: #0b0d16;
             color: #fff;
             font-family: Arial, sans-serif;
             overflow: hidden;
@@ -23,86 +23,98 @@
             justify-content: center;
             height: 100vh;
         }
-        
+
         #gameContainer {
             position: relative;
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             height: 80vh;
         }
-        
+
         #gameCanvas {
-            background-color: #111;
+            background-color: #0f172a;
             display: block;
             width: 100%;
             height: 100%;
+            border-radius: 12px;
+            border: 3px solid rgba(255, 255, 255, 0.08);
         }
-        
+
         #uiContainer {
             position: absolute;
             top: 10px;
             left: 10px;
             z-index: 10;
         }
-        
+
         #healthBar, #bossHealthBar {
-            width: 200px;
-            height: 20px;
-            background-color: #333;
-            border: 2px solid #555;
-            margin-bottom: 10px;
+            width: 220px;
+            height: 22px;
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-radius: 14px;
+            margin-bottom: 12px;
             overflow: hidden;
         }
-        
+
         #healthFill {
             height: 100%;
             width: 100%;
-            background-color: #4CAF50;
-            transition: width 0.3s;
+            background: linear-gradient(90deg, #34d399, #10b981);
+            transition: width 0.3s ease;
         }
-        
+
         #bossHealthFill {
             height: 100%;
             width: 100%;
-            background-color: #f44336;
-            transition: width 0.3s;
+            background: linear-gradient(90deg, #f87171, #ef4444);
+            transition: width 0.3s ease;
         }
-        
+
         #levelInfo {
             font-size: 18px;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
+            font-weight: bold;
         }
-        
+
         #controls {
             position: absolute;
-            bottom: 20px;
-            width: 100%;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            justify-content: space-between;
-            padding: 0 20px;
-            z-index: 10;
+            justify-content: center;
+            z-index: 15;
+            width: 100%;
+            pointer-events: none;
         }
-        
+
         .control-group {
             display: flex;
             flex-direction: column;
             align-items: center;
+            pointer-events: auto;
         }
-        
+
         .control-row {
             display: flex;
             justify-content: center;
-            margin-bottom: 10px;
+            gap: 16px;
+            margin-bottom: 12px;
         }
-        
+
+        .middle-row {
+            margin-bottom: 0;
+        }
+
         .control-btn {
-            width: 60px;
-            height: 60px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.5);
+            width: 70px;
+            height: 70px;
+            background-color: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.35);
             border-radius: 50%;
             color: white;
-            font-size: 24px;
+            font-size: 28px;
             margin: 5px;
             display: flex;
             align-items: center;
@@ -111,21 +123,11 @@
             -webkit-user-select: none;
             touch-action: none;
         }
-        
+
         .control-btn:active {
-            background-color: rgba(255, 255, 255, 0.4);
+            background-color: rgba(255, 255, 255, 0.35);
         }
-        
-        #shootBtn {
-            background-color: rgba(255, 50, 50, 0.6);
-            width: 70px;
-            height: 70px;
-        }
-        
-        #shootBtn:active {
-            background-color: rgba(255, 50, 50, 0.8);
-        }
-        
+
         #screen {
             position: absolute;
             top: 0;
@@ -136,59 +138,90 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.82);
             z-index: 20;
+            text-align: center;
+            padding: 20px;
         }
-        
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 25;
+            text-align: center;
+            padding: 20px;
+        }
+
         #title {
             font-size: 48px;
             margin-bottom: 20px;
-            color: #ffcc00;
-            text-shadow: 2px 2px 4px #000;
+            color: #facc15;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
         }
-        
+
         #subtitle {
-            font-size: 24px;
-            margin-bottom: 30px;
-            color: #fff;
+            font-size: 22px;
+            margin-bottom: 28px;
+            color: #f8fafc;
         }
-        
+
         button {
-            padding: 15px 30px;
+            padding: 16px 36px;
             font-size: 20px;
-            background-color: #4CAF50;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            margin: 10px;
-            transition: background-color 0.3s;
+            margin: 12px;
+            transition: transform 0.2s ease, opacity 0.2s ease;
         }
-        
+
         button:hover {
-            background-color: #45a049;
+            transform: translateY(-2px);
+            opacity: 0.9;
         }
-        
+
         #gameOverScreen, #levelCompleteScreen {
             display: none;
         }
-        
+
         .hidden {
             display: none !important;
         }
-        
+
         #mobileInstructions, #desktopInstructions {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #aaa;
+            margin-top: 16px;
+            font-size: 15px;
+            color: #cbd5f5;
+        }
+
+        @media (max-width: 768px) {
+            .control-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+
+            #healthBar, #bossHealthBar {
+                width: 180px;
+                height: 18px;
+            }
         }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
-        
+
         <div id="uiContainer">
             <div id="levelInfo">Уровень: <span id="levelNum">1</span></div>
             <div id="healthBar">
@@ -198,49 +231,46 @@
                 <div id="bossHealthFill"></div>
             </div>
         </div>
-        
+
         <div id="controls" class="hidden">
             <div class="control-group">
                 <div class="control-row">
                     <div class="control-btn" id="upBtn">↑</div>
                 </div>
-                <div class="control-row">
+                <div class="control-row middle-row">
                     <div class="control-btn" id="leftBtn">←</div>
+                    <div class="control-btn" id="downBtn">↓</div>
                     <div class="control-btn" id="rightBtn">→</div>
                 </div>
             </div>
-            <div class="control-group">
-                <div class="control-btn" id="shootBtn">⚡</div>
-            </div>
         </div>
-        
+
         <div id="screen">
-            <h1 id="title">ПЛАТФОРМЕР-ФАЙТЕР</h1>
-            <p id="subtitle">Сразитесь с четырьмя могущественными боссами!</p>
+            <h1 id="title">АРЕНА СВЕРХУ</h1>
+            <p id="subtitle">Двигайтесь по полю, избегайте врагов и уничтожайте боссов!</p>
             <button id="startBtn">Начать игру</button>
             <div id="mobileInstructions" class="hidden">
-                Используйте кнопки для перемещения и стрельбы
+                Касайтесь джойстика для движения, атаки происходят автоматически рядом с героем.
             </div>
             <div id="desktopInstructions" class="hidden">
-                Используйте стрелки клавиатуры или WASD для движения и пробел для выстрела
+                Используйте WASD или стрелки для движения. Атаки происходят автоматически в сторону взгляда.
             </div>
         </div>
-        
+
         <div id="gameOverScreen" class="screen">
             <h1 id="title">ИГРА ОКОНЧЕНА</h1>
-            <p id="subtitle">Вы проиграли!</p>
-            <button id="restartBtn">Играть снова</button>
+            <p id="subtitle">Вас настигли враги!</p>
+            <button id="restartBtn">Перезапустить</button>
         </div>
-        
+
         <div id="levelCompleteScreen" class="screen">
             <h1 id="title">УРОВЕНЬ ПРОЙДЕН!</h1>
-            <p id="subtitle">Приготовьтесь к следующему боссу</p>
+            <p id="subtitle">Подготовьтесь к следующей волне врагов.</p>
             <button id="nextLevelBtn">Следующий уровень</button>
         </div>
     </div>
 
     <script>
-        // Получаем элементы DOM
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const startScreen = document.getElementById('screen');
@@ -256,37 +286,32 @@
         const controls = document.getElementById('controls');
         const mobileInstructions = document.getElementById('mobileInstructions');
         const desktopInstructions = document.getElementById('desktopInstructions');
-        
-        // Кнопки управления
+
         const upBtn = document.getElementById('upBtn');
+        const downBtn = document.getElementById('downBtn');
         const leftBtn = document.getElementById('leftBtn');
         const rightBtn = document.getElementById('rightBtn');
-        const shootBtn = document.getElementById('shootBtn');
-        
-        // Установка размеров canvas
+
         function resizeCanvas() {
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
         }
-        
+
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
-        
-        // Игровые переменные
+
         let gameRunning = false;
         let currentLevel = 1;
         let player;
-        let platforms = [];
         let enemies = [];
-        let bullets = [];
-        let enemyBullets = [];
         let boss = null;
+        let attacks = [];
         let keys = {};
         let touchControls = {
             left: false,
             right: false,
             up: false,
-            shoot: false
+            down: false
         };
 
         function updateInputHints(isTouch) {
@@ -317,7 +342,7 @@
             touchControls.left = false;
             touchControls.right = false;
             touchControls.up = false;
-            touchControls.shoot = false;
+            touchControls.down = false;
         }
 
         function setupControlButton(button, controlKey) {
@@ -356,528 +381,361 @@
         setupControlButton(leftBtn, 'left');
         setupControlButton(rightBtn, 'right');
         setupControlButton(upBtn, 'up');
-        setupControlButton(shootBtn, 'shoot');
-        
-        // Класс игрока
+        setupControlButton(downBtn, 'down');
+
         class Player {
             constructor() {
-                this.width = 40;
-                this.height = 60;
-                this.x = 100;
-                this.y = canvas.height - 150;
-                this.speed = 5;
-                this.jumpPower = 15;
-                this.velocityY = 0;
-                this.isJumping = false;
+                this.radius = 22;
+                this.x = canvas.width / 2;
+                this.y = canvas.height / 2;
+                this.speed = 3.6;
                 this.health = 100;
-                this.facing = 'right';
-                this.shootCooldown = 0;
                 this.invincible = 0;
+                this.facingAngle = 0;
+                this.attackCooldown = 0;
             }
-            
+
             update() {
-                // Движение влево/вправо
                 const moveLeft = keys['ArrowLeft'] || keys['a'] || touchControls.left;
                 const moveRight = keys['ArrowRight'] || keys['d'] || touchControls.right;
-                const jumpPressed = keys['ArrowUp'] || keys['w'] || touchControls.up;
-                const shootPressed = keys[' '] || keys['Space'] || keys['space'] || keys['Spacebar'] || keys['spacebar'] || touchControls.shoot;
+                const moveUp = keys['ArrowUp'] || keys['w'] || touchControls.up;
+                const moveDown = keys['ArrowDown'] || keys['s'] || touchControls.down;
 
-                if (moveLeft) {
-                    this.x -= this.speed;
-                    this.facing = 'left';
-                }
-                if (moveRight) {
-                    this.x += this.speed;
-                    this.facing = 'right';
+                let dx = 0;
+                let dy = 0;
+
+                if (moveLeft) dx -= 1;
+                if (moveRight) dx += 1;
+                if (moveUp) dy -= 1;
+                if (moveDown) dy += 1;
+
+                if (dx !== 0 || dy !== 0) {
+                    const length = Math.hypot(dx, dy);
+                    dx /= length;
+                    dy /= length;
+                    this.x += dx * this.speed;
+                    this.y += dy * this.speed;
+                    this.facingAngle = Math.atan2(dy, dx);
                 }
 
-                // Прыжок
-                if (jumpPressed && !this.isJumping) {
-                    this.velocityY = -this.jumpPower;
-                    this.isJumping = true;
-                }
-                
-                // Гравитация
-                this.velocityY += 0.8;
-                this.y += this.velocityY;
-                
-                // Ограничение по краям
-                if (this.x < 0) this.x = 0;
-                if (this.x > canvas.width - this.width) this.x = canvas.width - this.width;
-                
-                // Проверка столкновения с платформами
-                let onGround = false;
-                for (let platform of platforms) {
-                    if (this.x < platform.x + platform.width &&
-                        this.x + this.width > platform.x &&
-                        this.y + this.height > platform.y &&
-                        this.y + this.height < platform.y + platform.height &&
-                        this.velocityY > 0) {
-                        this.y = platform.y - this.height;
-                        this.velocityY = 0;
-                        this.isJumping = false;
-                        onGround = true;
-                    }
-                }
-                
-                // Если игрок падает за пределы экрана
-                if (this.y > canvas.height) {
-                    this.takeDamage(100);
-                }
-                
-                // Обработка неуязвимости после получения урона
+                this.x = Math.min(canvas.width - this.radius, Math.max(this.radius, this.x));
+                this.y = Math.min(canvas.height - this.radius, Math.max(this.radius, this.y));
+
                 if (this.invincible > 0) {
                     this.invincible--;
                 }
-                
-                // Обработка перезарядки выстрела
-                if (this.shootCooldown > 0) {
-                    this.shootCooldown--;
-                }
-                
-                // Стрельба
-                if (shootPressed && this.shootCooldown === 0) {
-                    this.shoot();
-                    this.shootCooldown = 10;
+
+                if (this.attackCooldown > 0) {
+                    this.attackCooldown--;
+                } else {
+                    this.autoAttack();
                 }
             }
-            
-            shoot() {
-                const bulletX = this.facing === 'right' ? this.x + this.width : this.x;
-                bullets.push(new Bullet(bulletX, this.y + this.height / 2, this.facing));
+
+            autoAttack() {
+                const attackRange = 32;
+                const offset = this.radius + 18;
+                const attackX = this.x + Math.cos(this.facingAngle) * offset;
+                const attackY = this.y + Math.sin(this.facingAngle) * offset;
+                attacks.push({
+                    x: attackX,
+                    y: attackY,
+                    radius: attackRange,
+                    life: 12,
+                    damage: 2,
+                    hitIds: new Set()
+                });
+                this.attackCooldown = 24;
             }
-            
+
             takeDamage(amount) {
-                if (this.invincible === 0) {
-                    this.health -= amount;
-                    healthFill.style.width = this.health + '%';
-                    this.invincible = 30; // 0.5 секунды неуязвимости
-                    
-                    if (this.health <= 0) {
-                        gameOver();
-                    }
+                if (this.invincible > 0) return;
+
+                this.health -= amount;
+                if (this.health < 0) this.health = 0;
+                healthFill.style.width = this.health + '%';
+                this.invincible = 30;
+
+                if (this.health <= 0) {
+                    gameOver();
                 }
             }
-            
+
             draw() {
-                // Мигание при неуязвимости
-                if (this.invincible > 0 && this.invincible % 6 < 3) return;
-                
-                ctx.fillStyle = '#3498db';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                
-                // Рисуем "лицо" для указания направления
-                ctx.fillStyle = '#fff';
-                if (this.facing === 'right') {
-                    ctx.fillRect(this.x + this.width - 15, this.y + 15, 10, 10);
-                } else {
-                    ctx.fillRect(this.x + 5, this.y + 15, 10, 10);
+                ctx.save();
+                if (this.invincible > 0 && Math.floor(this.invincible / 4) % 2 === 0) {
+                    ctx.globalAlpha = 0.6;
                 }
+
+                const gradient = ctx.createRadialGradient(this.x - 5, this.y - 5, 8, this.x, this.y, this.radius);
+                gradient.addColorStop(0, '#38bdf8');
+                gradient.addColorStop(1, '#1d4ed8');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.strokeStyle = '#facc15';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(
+                    this.x + Math.cos(this.facingAngle) * (this.radius + 10),
+                    this.y + Math.sin(this.facingAngle) * (this.radius + 10)
+                );
+                ctx.stroke();
+                ctx.restore();
             }
         }
-        
-        // Класс пули
-        class Bullet {
-            constructor(x, y, direction) {
-                this.x = x;
-                this.y = y;
-                this.width = 10;
-                this.height = 5;
-                this.speed = 10;
-                this.direction = direction;
-            }
-            
-            update() {
-                if (this.direction === 'right') {
-                    this.x += this.speed;
-                } else {
-                    this.x -= this.speed;
-                }
-                
-                // Удаление пули, если она вышла за пределы экрана
-                return this.x > 0 && this.x < canvas.width;
-            }
-            
-            draw() {
-                ctx.fillStyle = '#ffcc00';
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-            }
-        }
-        
-        // Класс врага
+
         class Enemy {
-            constructor(x, y, type) {
+            constructor(x, y, options = {}) {
                 this.x = x;
                 this.y = y;
-                this.width = 40;
-                this.height = 60;
-                this.type = type; // 'normal', 'boss1', 'boss2', 'boss3', 'boss4'
-                this.health = type === 'normal' ? 1 : 3;
-                this.speed = 2;
+                this.type = options.type || 'normal';
+                this.speed = options.speed || 1.5;
+                this.maxHealth = options.health || 3;
+                this.health = this.maxHealth;
+                this.damage = options.damage || 10;
+                this.radius = options.radius != null ? options.radius : (this.type.includes('boss') ? 28 : 20);
                 this.attackCooldown = 0;
-                this.direction = -1;
+                this.id = Enemy.idCounter++;
             }
-            
+
             update() {
-                // Движение к игроку для обычных врагов
-                if (this.type === 'normal') {
-                    if (player.x < this.x) {
-                        this.x -= this.speed;
-                        this.direction = -1;
-                    } else {
-                        this.x += this.speed;
-                        this.direction = 1;
-                    }
-                }
-                
-                // Логика для боссов
-                if (this.type.includes('boss')) {
-                    this.bossBehavior();
-                }
-                
-                // Обработка перезарядки атаки
+                if (!player) return;
+
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distance = Math.hypot(dx, dy) || 1;
+
+                this.x += (dx / distance) * this.speed;
+                this.y += (dy / distance) * this.speed;
+
+                this.x = Math.min(canvas.width - this.radius, Math.max(this.radius, this.x));
+                this.y = Math.min(canvas.height - this.radius, Math.max(this.radius, this.y));
+
                 if (this.attackCooldown > 0) {
                     this.attackCooldown--;
                 }
-                
-                // Проверка столкновения с игроком
-                if (this.checkCollision(player) && player.invincible === 0) {
-                    const damage = this.type === 'boss4' ? 100 : 20;
-                    player.takeDamage(damage);
+
+                if (distance <= this.radius + player.radius) {
+                    this.attackPlayer();
                 }
             }
-            
-            bossBehavior() {
-                switch(this.type) {
-                    case 'boss1':
-                        // Быстрые удары - быстро движется к игроку
-                        if (player.x < this.x) {
-                            this.x -= this.speed * 1.5;
-                        } else {
-                            this.x += this.speed * 1.5;
-                        }
-                        
-                        // Атака каждые 60 кадров
-                        if (this.attackCooldown === 0) {
-                            this.attackCooldown = 60;
-                        }
-                        break;
-                        
-                    case 'boss2':
-                        // Кидает предметы по баллистической траектории
-                        if (this.attackCooldown === 0) {
-                            this.throwProjectile();
-                            this.attackCooldown = 120;
-                        }
-                        break;
-                        
-                    case 'boss3':
-                        // Стреляет из пистолета
-                        if (this.attackCooldown === 0) {
-                            this.shoot();
-                            this.attackCooldown = 90;
-                        }
-                        break;
-                        
-                    case 'boss4':
-                        // Очень большой и медленный
-                        this.width = 80;
-                        this.height = 120;
-                        if (player.x < this.x) {
-                            this.x -= this.speed * 0.7;
-                        } else {
-                            this.x += this.speed * 0.7;
-                        }
-                        break;
+
+            attackPlayer() {
+                if (this.attackCooldown === 0) {
+                    player.takeDamage(this.damage);
+                    this.attackCooldown = 45;
                 }
             }
-            
-            throwProjectile() {
-                // Создаем снаряд с баллистической траекторией
-                const dx = player.x - this.x;
-                const dy = player.y - this.y;
-                const power = 0.1;
-                
-                enemyBullets.push({
-                    x: this.x,
-                    y: this.y,
-                    width: 20,
-                    height: 20,
-                    velocityX: dx * power,
-                    velocityY: dy * power,
-                    gravity: 0.2,
-                    update: function() {
-                        this.x += this.velocityX;
-                        this.y += this.velocityY;
-                        this.velocityY += this.gravity;
-                        
-                        // Проверка столкновения с игроком
-                        if (this.checkCollision(player) && player.invincible === 0) {
-                            player.takeDamage(20);
-                            return false;
-                        }
-                        
-                        // Удаление если вышло за пределы экрана
-                        return this.x > 0 && this.x < canvas.width && this.y < canvas.height;
-                    },
-                    draw: function() {
-                        ctx.fillStyle = '#8e44ad';
-                        ctx.beginPath();
-                        ctx.arc(this.x, this.y, this.width/2, 0, Math.PI * 2);
-                        ctx.fill();
-                    },
-                    checkCollision: function(obj) {
-                        return this.x < obj.x + obj.width &&
-                               this.x + this.width > obj.x &&
-                               this.y < obj.y + obj.height &&
-                               this.y + this.height > obj.y;
-                    }
-                });
-            }
-            
-            shoot() {
-                // Стрельба в сторону игрока
-                const direction = player.x < this.x ? -1 : 1;
-                enemyBullets.push({
-                    x: this.x,
-                    y: this.y + this.height / 2,
-                    width: 15,
-                    height: 8,
-                    speed: 7,
-                    direction: direction,
-                    update: function() {
-                        this.x += this.speed * this.direction;
-                        
-                        // Проверка столкновения с игроком
-                        if (this.checkCollision(player) && player.invincible === 0) {
-                            player.takeDamage(20);
-                            return false;
-                        }
-                        
-                        // Удаление если вышло за пределы экрана
-                        return this.x > 0 && this.x < canvas.width;
-                    },
-                    draw: function() {
-                        ctx.fillStyle = '#e74c3c';
-                        ctx.fillRect(this.x, this.y, this.width, this.height);
-                    },
-                    checkCollision: function(obj) {
-                        return this.x < obj.x + obj.width &&
-                               this.x + this.width > obj.x &&
-                               this.y < obj.y + obj.height &&
-                               this.y + this.height > obj.y;
-                    }
-                });
-            }
-            
-            takeDamage() {
-                this.health--;
-                
-                // Обновление полоски здоровья босса
+
+            takeDamage(amount = 1) {
+                this.health -= amount;
+                if (this.health < 0) this.health = 0;
+
                 if (this.type.includes('boss')) {
-                    const healthPercent = (this.health / 3) * 100;
-                    bossHealthFill.style.width = healthPercent + '%';
+                    const percent = (this.health / this.maxHealth) * 100;
+                    bossHealthFill.style.width = Math.max(0, percent) + '%';
                 }
-                
+
                 return this.health <= 0;
             }
-            
-            checkCollision(obj) {
-                return this.x < obj.x + obj.width &&
-                       this.x + this.width > obj.x &&
-                       this.y < obj.y + obj.height &&
-                       this.y + this.height > obj.y;
-            }
-            
+
             draw() {
-                // Разные цвета для разных типов врагов
-                switch(this.type) {
-                    case 'normal':
-                        ctx.fillStyle = '#e74c3c';
-                        break;
+                ctx.save();
+                let fillColor = '#ef4444';
+                switch (this.type) {
                     case 'boss1':
-                        ctx.fillStyle = '#f39c12';
+                        fillColor = '#f97316';
                         break;
                     case 'boss2':
-                        ctx.fillStyle = '#9b59b6';
+                        fillColor = '#a855f7';
                         break;
                     case 'boss3':
-                        ctx.fillStyle = '#3498db';
+                        fillColor = '#22d3ee';
                         break;
                     case 'boss4':
-                        ctx.fillStyle = '#c0392b';
+                        fillColor = '#f43f5e';
                         break;
                 }
-                
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                
-                // Рисуем "лицо" для указания направления
-                ctx.fillStyle = '#fff';
-                if (this.direction === 1) {
-                    ctx.fillRect(this.x + this.width - 15, this.y + 15, 10, 10);
-                } else {
-                    ctx.fillRect(this.x + 5, this.y + 15, 10, 10);
+
+                const gradient = ctx.createRadialGradient(this.x - 6, this.y - 6, 6, this.x, this.y, this.radius);
+                gradient.addColorStop(0, fillColor);
+                gradient.addColorStop(1, '#1f2937');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+                ctx.fillRect(this.x - this.radius, this.y - this.radius - 10, this.radius * 2, 5);
+                ctx.fillStyle = '#22c55e';
+                const healthWidth = (this.health / this.maxHealth) * this.radius * 2;
+                ctx.fillRect(this.x - this.radius, this.y - this.radius - 10, Math.max(0, healthWidth), 5);
+                ctx.restore();
+            }
+        }
+
+        Enemy.idCounter = 0;
+
+        function drawArena() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const gridSize = 70;
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.06)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let x = gridSize; x < canvas.width; x += gridSize) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+            }
+            for (let y = gridSize; y < canvas.height; y += gridSize) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+            }
+            ctx.stroke();
+        }
+
+        function handleAttacks() {
+            for (let i = attacks.length - 1; i >= 0; i--) {
+                const attack = attacks[i];
+                attack.life--;
+
+                ctx.save();
+                ctx.globalAlpha = 0.25;
+                ctx.fillStyle = '#fde68a';
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, attack.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, attack.radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                for (const enemy of enemies) {
+                    if (enemy.health <= 0) continue;
+                    if (attack.hitIds.has(enemy.id)) continue;
+                    const dist = Math.hypot(enemy.x - attack.x, enemy.y - attack.y);
+                    if (dist <= attack.radius + enemy.radius) {
+                        const defeated = enemy.takeDamage(attack.damage);
+                        attack.hitIds.add(enemy.id);
+                        if (defeated && enemy === boss) {
+                            boss = null;
+                            bossHealthBar.classList.add('hidden');
+                        }
+                    }
+                }
+
+                if (attack.life <= 0) {
+                    attacks.splice(i, 1);
                 }
             }
         }
-        
-        // Создание уровня
+
+        function randomSpawnPosition(padding = 90) {
+            let x, y;
+            const maxAttempts = 50;
+            let attempts = 0;
+            do {
+                x = padding + Math.random() * (canvas.width - padding * 2);
+                y = padding + Math.random() * (canvas.height - padding * 2);
+                attempts++;
+            } while (attempts < maxAttempts && Math.hypot(x - player.x, y - player.y) < padding);
+            return { x, y };
+        }
+
         function createLevel(level) {
-            platforms = [];
+            attacks = [];
             enemies = [];
-            bullets = [];
-            enemyBullets = [];
             boss = null;
-            
-            // Создание платформ
-            platforms.push({x: 0, y: canvas.height - 50, width: canvas.width, height: 50});
-            
-            // Добавляем дополнительные платформы в зависимости от уровня
-            if (level === 1) {
-                platforms.push({x: 200, y: canvas.height - 150, width: 100, height: 20});
-                platforms.push({x: 400, y: canvas.height - 200, width: 100, height: 20});
-                platforms.push({x: 600, y: canvas.height - 150, width: 100, height: 20});
-                
-                // Добавляем обычных врагов
-                enemies.push(new Enemy(300, canvas.height - 110, 'normal'));
-                enemies.push(new Enemy(500, canvas.height - 160, 'normal'));
-                
-                // Добавляем босса
-                boss = new Enemy(canvas.width - 100, canvas.height - 110, 'boss1');
-                enemies.push(boss);
+            Enemy.idCounter = 0;
+
+            const levelConfigs = {
+                1: { normalCount: 5, normalHealth: 2, normalSpeed: 1.6, bossType: 'boss1', bossHealth: 24, bossSpeed: 1.8, bossDamage: 16 },
+                2: { normalCount: 7, normalHealth: 3, normalSpeed: 1.8, bossType: 'boss2', bossHealth: 30, bossSpeed: 2.0, bossDamage: 18 },
+                3: { normalCount: 9, normalHealth: 3, normalSpeed: 2.0, bossType: 'boss3', bossHealth: 34, bossSpeed: 2.2, bossDamage: 20 },
+                4: { normalCount: 12, normalHealth: 4, normalSpeed: 2.2, bossType: 'boss4', bossHealth: 40, bossSpeed: 2.4, bossDamage: 24 }
+            };
+
+            const config = levelConfigs[level] || levelConfigs[1];
+
+            for (let i = 0; i < config.normalCount; i++) {
+                const pos = randomSpawnPosition();
+                enemies.push(new Enemy(pos.x, pos.y, {
+                    type: 'normal',
+                    speed: config.normalSpeed + Math.random() * 0.3,
+                    health: config.normalHealth,
+                    damage: 10 + level * 2,
+                    radius: 20
+                }));
             }
-            else if (level === 2) {
-                platforms.push({x: 150, y: canvas.height - 120, width: 80, height: 20});
-                platforms.push({x: 300, y: canvas.height - 180, width: 80, height: 20});
-                platforms.push({x: 450, y: canvas.height - 240, width: 80, height: 20});
-                platforms.push({x: 600, y: canvas.height - 180, width: 80, height: 20});
-                
-                enemies.push(new Enemy(200, canvas.height - 130, 'normal'));
-                enemies.push(new Enemy(350, canvas.height - 190, 'normal'));
-                enemies.push(new Enemy(500, canvas.height - 250, 'normal'));
-                
-                boss = new Enemy(canvas.width - 100, canvas.height - 130, 'boss2');
-                enemies.push(boss);
-            }
-            else if (level === 3) {
-                platforms.push({x: 100, y: canvas.height - 100, width: 70, height: 20});
-                platforms.push({x: 250, y: canvas.height - 160, width: 70, height: 20});
-                platforms.push({x: 400, y: canvas.height - 220, width: 70, height: 20});
-                platforms.push({x: 550, y: canvas.height - 160, width: 70, height: 20});
-                platforms.push({x: 700, y: canvas.height - 100, width: 70, height: 20});
-                
-                enemies.push(new Enemy(150, canvas.height - 110, 'normal'));
-                enemies.push(new Enemy(300, canvas.height - 170, 'normal'));
-                enemies.push(new Enemy(450, canvas.height - 230, 'normal'));
-                enemies.push(new Enemy(600, canvas.height - 170, 'normal'));
-                
-                boss = new Enemy(canvas.width - 100, canvas.height - 110, 'boss3');
-                enemies.push(boss);
-            }
-            else if (level === 4) {
-                platforms.push({x: 50, y: canvas.height - 100, width: 60, height: 20});
-                platforms.push({x: 200, y: canvas.height - 170, width: 60, height: 20});
-                platforms.push({x: 350, y: canvas.height - 240, width: 60, height: 20});
-                platforms.push({x: 500, y: canvas.height - 170, width: 60, height: 20});
-                platforms.push({x: 650, y: canvas.height - 100, width: 60, height: 20});
-                
-                enemies.push(new Enemy(100, canvas.height - 110, 'normal'));
-                enemies.push(new Enemy(250, canvas.height - 180, 'normal'));
-                enemies.push(new Enemy(400, canvas.height - 250, 'normal'));
-                enemies.push(new Enemy(550, canvas.height - 180, 'normal'));
-                enemies.push(new Enemy(700, canvas.height - 110, 'normal'));
-                
-                boss = new Enemy(canvas.width - 120, canvas.height - 130, 'boss4');
-                enemies.push(boss);
-            }
-            
-            // Показываем полоску здоровья босса, если он есть
-            if (boss) {
-                bossHealthBar.classList.remove('hidden');
-                bossHealthFill.style.width = '100%';
-            } else {
-                bossHealthBar.classList.add('hidden');
-            }
-            
-            // Обновляем информацию об уровне
+
+            const bossPos = randomSpawnPosition(140);
+            boss = new Enemy(bossPos.x, bossPos.y, {
+                type: config.bossType,
+                speed: config.bossSpeed,
+                health: config.bossHealth,
+                damage: config.bossDamage,
+                radius: 30
+            });
+            enemies.push(boss);
+            bossHealthBar.classList.remove('hidden');
+            bossHealthFill.style.width = '100%';
+
             levelNum.textContent = level;
         }
-        
-        // Игровой цикл
+
         function gameLoop() {
             if (!gameRunning) return;
-            
-            // Очистка canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Обновление и отрисовка игрока
+
+            drawArena();
             player.update();
-            player.draw();
-            
-            // Обновление и отрисовка платформ
-            for (let platform of platforms) {
-                ctx.fillStyle = '#27ae60';
-                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-            }
-            
-            // Обновление и отрисовка врагов
+            handleAttacks();
+
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
                 enemy.update();
                 enemy.draw();
 
-                // Проверка столкновения пуль с врагами
-                for (let j = bullets.length - 1; j >= 0; j--) {
-                    const bullet = bullets[j];
-                    if (enemy.checkCollision(bullet)) {
-                        const defeated = enemy.takeDamage();
-                        bullets.splice(j, 1);
-
-                        if (defeated) {
-                            const wasBoss = enemy.type.includes('boss');
-                            enemies.splice(i, 1);
-
-                            if (wasBoss) {
-                                boss = null;
-                                bossHealthBar.classList.add('hidden');
-                                levelComplete();
-                                return;
-                            }
-                        }
-                        break;
+                if (enemy.health <= 0) {
+                    const wasBoss = enemy === boss;
+                    enemies.splice(i, 1);
+                    if (wasBoss) {
+                        boss = null;
+                        bossHealthBar.classList.add('hidden');
                     }
                 }
             }
-            
-            // Обновление и отрисовка пуль игрока
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                if (!bullets[i].update()) {
-                    bullets.splice(i, 1);
+
+            player.draw();
+
+            if (enemies.length === 0) {
+                if (currentLevel < 4) {
+                    levelComplete();
                 } else {
-                    bullets[i].draw();
+                    gameWin();
                 }
+                return;
             }
-            
-            // Обновление и отрисовка вражеских снарядов
-            for (let i = enemyBullets.length - 1; i >= 0; i--) {
-                if (!enemyBullets[i].update()) {
-                    enemyBullets.splice(i, 1);
-                } else {
-                    enemyBullets[i].draw();
-                }
-            }
-            
-            // Проверка завершения уровня (все враги побеждены)
-            if (enemies.length === 0 && currentLevel < 4) {
-                levelComplete();
-            } else if (enemies.length === 0 && currentLevel === 4) {
-                gameWin();
-            }
-            
+
             requestAnimationFrame(gameLoop);
         }
-        
-        // Начало игры
+
         function startGame() {
             gameRunning = true;
             currentLevel = 1;
@@ -889,26 +747,26 @@
             bossHealthBar.classList.add('hidden');
             createLevel(currentLevel);
             startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            levelCompleteScreen.classList.add('hidden');
             gameLoop();
         }
 
-        // Завершение уровня
         function levelComplete() {
             gameRunning = false;
             resetTouchControls();
             bossHealthBar.classList.add('hidden');
-            if (currentLevel < 4) {
-                levelCompleteScreen.classList.remove('hidden');
-            } else {
-                gameWin();
-            }
+            levelCompleteScreen.classList.remove('hidden');
         }
-        
-        // Переход на следующий уровень
+
         function nextLevel() {
             currentLevel++;
             resetTouchControls();
             player.health = 100;
+            player.invincible = 0;
+            player.attackCooldown = 0;
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
             healthFill.style.width = '100%';
             bossHealthFill.style.width = '100%';
             createLevel(currentLevel);
@@ -916,23 +774,22 @@
             gameRunning = true;
             gameLoop();
         }
-        
-        // Победа в игре
+
         function gameWin() {
             gameRunning = false;
             alert('Поздравляем! Вы прошли все уровни!');
             restartGame();
         }
-        
-        // Конец игры
+
         function gameOver() {
+            if (!gameRunning) return;
             gameRunning = false;
             resetTouchControls();
             bossHealthBar.classList.add('hidden');
+            levelCompleteScreen.classList.add('hidden');
             gameOverScreen.classList.remove('hidden');
         }
 
-        // Перезапуск игры
         function restartGame() {
             gameOverScreen.classList.add('hidden');
             levelCompleteScreen.classList.add('hidden');
@@ -942,14 +799,13 @@
             healthFill.style.width = '100%';
             resetTouchControls();
             keys = {};
+            gameRunning = false;
         }
-        
-        // Обработчики событий
+
         startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', restartGame);
+        restartBtn.addEventListener('click', startGame);
         nextLevelBtn.addEventListener('click', nextLevel);
-        
-        // Обработка клавиатуры
+
         function setKeyState(event, isPressed) {
             const key = event.key;
             keys[key] = isPressed;
@@ -958,7 +814,7 @@
                 keys[lowerKey] = isPressed;
             }
 
-            if ([' ', 'Space', 'Spacebar', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Space', 'Spacebar'].includes(key)) {
                 event.preventDefault();
             }
         }
@@ -975,7 +831,6 @@
             keys = {};
             resetTouchControls();
         });
-        
     </script>
 </body>
 </html>
