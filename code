@@ -177,7 +177,7 @@
             display: none !important;
         }
         
-        #mobileInstructions {
+        #mobileInstructions, #desktopInstructions {
             margin-top: 20px;
             text-align: center;
             font-size: 14px;
@@ -199,14 +199,13 @@
             </div>
         </div>
         
-        <div id="controls">
+        <div id="controls" class="hidden">
             <div class="control-group">
                 <div class="control-row">
                     <div class="control-btn" id="upBtn">↑</div>
                 </div>
                 <div class="control-row">
                     <div class="control-btn" id="leftBtn">←</div>
-                    <div class="control-btn" id="downBtn">↓</div>
                     <div class="control-btn" id="rightBtn">→</div>
                 </div>
             </div>
@@ -219,8 +218,11 @@
             <h1 id="title">ПЛАТФОРМЕР-ФАЙТЕР</h1>
             <p id="subtitle">Сразитесь с четырьмя могущественными боссами!</p>
             <button id="startBtn">Начать игру</button>
-            <div id="mobileInstructions">
+            <div id="mobileInstructions" class="hidden">
                 Используйте кнопки для перемещения и стрельбы
+            </div>
+            <div id="desktopInstructions" class="hidden">
+                Используйте стрелки клавиатуры или WASD для движения и пробел для выстрела
             </div>
         </div>
         
@@ -251,6 +253,9 @@
         const healthFill = document.getElementById('healthFill');
         const bossHealthBar = document.getElementById('bossHealthBar');
         const bossHealthFill = document.getElementById('bossHealthFill');
+        const controls = document.getElementById('controls');
+        const mobileInstructions = document.getElementById('mobileInstructions');
+        const desktopInstructions = document.getElementById('desktopInstructions');
         
         // Кнопки управления
         const upBtn = document.getElementById('upBtn');
@@ -283,6 +288,75 @@
             up: false,
             shoot: false
         };
+
+        function updateInputHints(isTouch) {
+            if (isTouch) {
+                controls.classList.remove('hidden');
+                mobileInstructions.classList.remove('hidden');
+                desktopInstructions.classList.add('hidden');
+            } else {
+                controls.classList.add('hidden');
+                mobileInstructions.classList.add('hidden');
+                desktopInstructions.classList.remove('hidden');
+            }
+        }
+
+        const pointerMedia = typeof window.matchMedia === 'function' ? window.matchMedia('(pointer: coarse)') : null;
+        const supportsTouch = 'ontouchstart' in window || (typeof navigator !== 'undefined' && ((navigator.maxTouchPoints || navigator.msMaxTouchPoints || 0) > 0));
+        updateInputHints((pointerMedia && pointerMedia.matches) || supportsTouch);
+
+        if (pointerMedia) {
+            if (typeof pointerMedia.addEventListener === 'function') {
+                pointerMedia.addEventListener('change', (event) => updateInputHints(event.matches));
+            } else if (typeof pointerMedia.addListener === 'function') {
+                pointerMedia.addListener((event) => updateInputHints(event.matches));
+            }
+        }
+
+        function resetTouchControls() {
+            touchControls.left = false;
+            touchControls.right = false;
+            touchControls.up = false;
+            touchControls.shoot = false;
+        }
+
+        function setupControlButton(button, controlKey) {
+            if (!button) return;
+
+            const activate = (event) => {
+                if (event.type === 'pointerdown' && event.isPrimary === false) return;
+                if (event.type.startsWith('mouse') && event.button !== 0) return;
+                event.preventDefault();
+                touchControls[controlKey] = true;
+            };
+
+            const deactivate = (event) => {
+                if (event.type.startsWith('mouse') && event.button !== undefined && event.button !== 0) return;
+                event.preventDefault();
+                touchControls[controlKey] = false;
+            };
+
+            if (window.PointerEvent) {
+                button.addEventListener('pointerdown', activate);
+                button.addEventListener('pointerup', deactivate);
+                button.addEventListener('pointercancel', deactivate);
+                button.addEventListener('pointerleave', deactivate);
+            } else {
+                button.addEventListener('touchstart', activate, { passive: false });
+                button.addEventListener('touchend', deactivate, { passive: false });
+                button.addEventListener('touchcancel', deactivate, { passive: false });
+                button.addEventListener('mousedown', activate);
+                button.addEventListener('mouseup', deactivate);
+                button.addEventListener('mouseleave', deactivate);
+            }
+
+            button.addEventListener('contextmenu', (event) => event.preventDefault());
+        }
+
+        setupControlButton(leftBtn, 'left');
+        setupControlButton(rightBtn, 'right');
+        setupControlButton(upBtn, 'up');
+        setupControlButton(shootBtn, 'shoot');
         
         // Класс игрока
         class Player {
@@ -303,17 +377,22 @@
             
             update() {
                 // Движение влево/вправо
-                if (keys['ArrowLeft'] || touchControls.left) {
+                const moveLeft = keys['ArrowLeft'] || keys['a'] || touchControls.left;
+                const moveRight = keys['ArrowRight'] || keys['d'] || touchControls.right;
+                const jumpPressed = keys['ArrowUp'] || keys['w'] || touchControls.up;
+                const shootPressed = keys[' '] || keys['Space'] || keys['space'] || keys['Spacebar'] || keys['spacebar'] || touchControls.shoot;
+
+                if (moveLeft) {
                     this.x -= this.speed;
                     this.facing = 'left';
                 }
-                if (keys['ArrowRight'] || touchControls.right) {
+                if (moveRight) {
                     this.x += this.speed;
                     this.facing = 'right';
                 }
-                
+
                 // Прыжок
-                if ((keys['ArrowUp'] || touchControls.up) && !this.isJumping) {
+                if (jumpPressed && !this.isJumping) {
                     this.velocityY = -this.jumpPower;
                     this.isJumping = true;
                 }
@@ -357,7 +436,7 @@
                 }
                 
                 // Стрельба
-                if ((keys[' '] || touchControls.shoot) && this.shootCooldown === 0) {
+                if (shootPressed && this.shootCooldown === 0) {
                     this.shoot();
                     this.shootCooldown = 10;
                 }
@@ -648,6 +727,7 @@
             enemies = [];
             bullets = [];
             enemyBullets = [];
+            boss = null;
             
             // Создание платформ
             platforms.push({x: 0, y: canvas.height - 50, width: canvas.width, height: 50});
@@ -711,9 +791,13 @@
                 enemies.push(boss);
             }
             
-            // Показываем полоску здоровья босса
-            bossHealthBar.classList.remove('hidden');
-            bossHealthFill.style.width = '100%';
+            // Показываем полоску здоровья босса, если он есть
+            if (boss) {
+                bossHealthBar.classList.remove('hidden');
+                bossHealthFill.style.width = '100%';
+            } else {
+                bossHealthBar.classList.add('hidden');
+            }
             
             // Обновляем информацию об уровне
             levelNum.textContent = level;
@@ -738,22 +822,28 @@
             
             // Обновление и отрисовка врагов
             for (let i = enemies.length - 1; i >= 0; i--) {
-                enemies[i].update();
-                enemies[i].draw();
-                
+                const enemy = enemies[i];
+                enemy.update();
+                enemy.draw();
+
                 // Проверка столкновения пуль с врагами
                 for (let j = bullets.length - 1; j >= 0; j--) {
-                    if (enemies[i].checkCollision(bullets[j])) {
-                        if (enemies[i].takeDamage()) {
+                    const bullet = bullets[j];
+                    if (enemy.checkCollision(bullet)) {
+                        const defeated = enemy.takeDamage();
+                        bullets.splice(j, 1);
+
+                        if (defeated) {
+                            const wasBoss = enemy.type.includes('boss');
                             enemies.splice(i, 1);
-                            
-                            // Если это был босс
-                            if (enemies[i] && enemies[i].type.includes('boss')) {
+
+                            if (wasBoss) {
+                                boss = null;
+                                bossHealthBar.classList.add('hidden');
                                 levelComplete();
-                                break;
+                                return;
                             }
                         }
-                        bullets.splice(j, 1);
                         break;
                     }
                 }
@@ -791,15 +881,22 @@
         function startGame() {
             gameRunning = true;
             currentLevel = 1;
+            keys = {};
+            resetTouchControls();
             player = new Player();
+            healthFill.style.width = '100%';
+            bossHealthFill.style.width = '100%';
+            bossHealthBar.classList.add('hidden');
             createLevel(currentLevel);
             startScreen.classList.add('hidden');
             gameLoop();
         }
-        
+
         // Завершение уровня
         function levelComplete() {
             gameRunning = false;
+            resetTouchControls();
+            bossHealthBar.classList.add('hidden');
             if (currentLevel < 4) {
                 levelCompleteScreen.classList.remove('hidden');
             } else {
@@ -810,8 +907,10 @@
         // Переход на следующий уровень
         function nextLevel() {
             currentLevel++;
+            resetTouchControls();
             player.health = 100;
             healthFill.style.width = '100%';
+            bossHealthFill.style.width = '100%';
             createLevel(currentLevel);
             levelCompleteScreen.classList.add('hidden');
             gameRunning = true;
@@ -828,14 +927,21 @@
         // Конец игры
         function gameOver() {
             gameRunning = false;
+            resetTouchControls();
+            bossHealthBar.classList.add('hidden');
             gameOverScreen.classList.remove('hidden');
         }
-        
+
         // Перезапуск игры
         function restartGame() {
             gameOverScreen.classList.add('hidden');
             levelCompleteScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
+            bossHealthBar.classList.add('hidden');
+            bossHealthFill.style.width = '100%';
+            healthFill.style.width = '100%';
+            resetTouchControls();
+            keys = {};
         }
         
         // Обработчики событий
@@ -844,61 +950,32 @@
         nextLevelBtn.addEventListener('click', nextLevel);
         
         // Обработка клавиатуры
+        function setKeyState(event, isPressed) {
+            const key = event.key;
+            keys[key] = isPressed;
+            const lowerKey = key && typeof key === 'string' ? key.toLowerCase() : null;
+            if (lowerKey) {
+                keys[lowerKey] = isPressed;
+            }
+
+            if ([' ', 'Space', 'Spacebar', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+                event.preventDefault();
+            }
+        }
+
         window.addEventListener('keydown', (e) => {
-            keys[e.key] = true;
+            setKeyState(e, true);
         });
-        
+
         window.addEventListener('keyup', (e) => {
-            keys[e.key] = false;
+            setKeyState(e, false);
+        });
+
+        window.addEventListener('blur', () => {
+            keys = {};
+            resetTouchControls();
         });
         
-        // Обработка сенсорного управления
-        leftBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            touchControls.left = true;
-        });
-        
-        leftBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            touchControls.left = false;
-        });
-        
-        rightBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            touchControls.right = true;
-        });
-        
-        rightBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            touchControls.right = false;
-        });
-        
-        upBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            touchControls.up = true;
-        });
-        
-        upBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            touchControls.up = false;
-        });
-        
-        shootBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            touchControls.shoot = true;
-        });
-        
-        shootBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            touchControls.shoot = false;
-        });
-        
-        // Предотвращение стандартного поведения при касании
-        document.querySelectorAll('.control-btn').forEach(btn => {
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-            });
-        });
     </script>
 </body>
 </html>
