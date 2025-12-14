@@ -1,5 +1,5 @@
 import { storyChapters } from './storyData.js';
-import { backgrounds, sprites } from './assets.js';
+import { backgrounds, sprites, fallbackBackground, fallbackSprite } from './assets.js';
 
 class NovelEngine {
   constructor({ stageEl, overlayEl, speakerEl, textEl }) {
@@ -20,7 +20,10 @@ class NovelEngine {
 
   setBackground(name) {
     const texture = backgrounds[name];
-    const url = texture ? `url(${texture})` : 'linear-gradient(135deg, #1a2234, #0f111a)';
+    const fallback = fallbackBackground;
+    const url = texture
+      ? `url(${texture}), linear-gradient(135deg, #1a2234, #0f111a)`
+      : `url(${fallback})`;
     this.stageEl.style.backgroundImage = url;
     this.stageEl.dataset.background = name || 'Unknown';
   }
@@ -33,9 +36,13 @@ class NovelEngine {
       spriteWrap.style.left = `${30 + index * 25}%`;
 
       const img = document.createElement('img');
-      const src = sprites[obj.texture] || '';
+      const src = sprites[obj.texture] || sprites.__fallback || fallbackSprite;
       img.src = src;
       img.alt = obj.texture;
+      img.onerror = () => {
+        img.onerror = null;
+        img.src = sprites.__fallback || fallbackSprite;
+      };
       spriteWrap.appendChild(img);
 
       const label = document.createElement('div');
@@ -54,12 +61,14 @@ class NovelEngine {
 
     if (line.background) {
       this.setBackground(line.background);
+    } else {
+      this.setBackground(null);
     }
 
     this.setSprites(line.objects || []);
 
-    this.speakerEl.textContent = line.speaker || chapter.title;
-    this.textEl.textContent = line.text;
+    this.speakerEl.textContent = line.speaker || chapter.title || 'Нарратор';
+    this.textEl.textContent = line.text || '';
   }
 
   next() {
