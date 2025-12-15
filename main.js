@@ -1,15 +1,15 @@
-import { storyChapters } from './storyData.js';
+import { loadStory } from './storyData.js';
 import { backgrounds, sprites, fallbackBackground, fallbackSprite } from './assets.js';
 
 class NovelEngine {
-  constructor({ stageEl, overlayEl, speakerEl, textEl }) {
+  constructor({ stageEl, overlayEl, speakerEl, textEl, story }) {
     this.stageEl = stageEl;
     this.overlayEl = overlayEl;
     this.speakerEl = speakerEl;
     this.textEl = textEl;
     this.chapterIndex = 0;
     this.lineIndex = 0;
-    this.story = storyChapters;
+    this.story = story;
     this.renderLine();
     this.bindControls();
   }
@@ -55,6 +55,9 @@ class NovelEngine {
   }
 
   renderLine() {
+    if (!this.story || !this.story.length) {
+      return;
+    }
     const chapter = this.story[this.chapterIndex];
     const line = chapter.lines[this.lineIndex];
     if (!line) return;
@@ -113,11 +116,20 @@ class NovelEngine {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  const engine = new NovelEngine({
-    stageEl: document.getElementById('stage'),
-    overlayEl: document.getElementById('overlay'),
-    speakerEl: document.getElementById('speaker'),
-    textEl: document.getElementById('text'),
+  loadStory().then((story) => {
+    const engine = new NovelEngine({
+      stageEl: document.getElementById('stage'),
+      overlayEl: document.getElementById('overlay'),
+      speakerEl: document.getElementById('speaker'),
+      textEl: document.getElementById('text'),
+      story,
+    });
+    window.__novel = engine;
+  }).catch((error) => {
+    const textEl = document.getElementById('text');
+    if (textEl) {
+      textEl.textContent = 'Не удалось загрузить сценарий из файла.';
+    }
+    console.error('Story load error', error);
   });
-  window.__novel = engine;
 });
