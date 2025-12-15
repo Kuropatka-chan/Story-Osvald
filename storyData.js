@@ -1,165 +1,45 @@
-// Основной сценарий. Каждый блок описывает сцену со списком реплик.
-// Тексты основаны на файле "Окончательное решение демонического вопроса.txt".
+// Парсер сценария. Читает исходный текстовый файл и превращает строки в главы новеллы.
+// Благодаря этому текст в игре всегда совпадает с содержимым файла
+// «Окончательное решение демонического вопроса.txt».
 
-export const storyChapters = [
-  {
-    id: 'upper-town-start',
-    title: 'Прогулка по Верхнему городу',
-    lines: [
-      {
-        background: 'UpperTown1',
-        speaker: 'Освальд',
-        text: 'Мирно шагаю по мостовой, иду мимо лавочек, фонари греют улицы.',
-        objects: [
-          { texture: 'Osvald1', label: 'Освальд' },
-        ],
-      },
-      {
-        speaker: 'Освальд',
-        text: 'В воздухе запах выпечки и железа, жизнь кипит даже в раннее утро.',
-      },
-      {
-        background: 'LowerTown1',
-        speaker: 'Нарратор',
-        text: 'Дорога ведёт вниз по лестнице, улицы становятся теснее и шумнее.',
-      },
-      {
-        speaker: 'Освальд',
-        text: 'Крики торговцев смешиваются с игрой детей и руганью стражи.',
-      },
-    ],
-  },
-  {
-    id: 'home',
-    title: 'Домашний разговор',
-    lines: [
-      {
-        background: 'Home1',
-        speaker: 'Освальд',
-        text: 'Я открываю дверь, запах тушёного мяса встречает меня первым.',
-        objects: [
-          { texture: 'Osvald2', label: 'Освальд' },
-          { texture: 'Mom1', label: 'Мама' },
-        ],
-      },
-      {
-        speaker: 'Мама',
-        text: 'Где пропадал? Обед стынет, сынок!',
-      },
-      {
-        speaker: 'Карл',
-        objects: [{ texture: 'Karl1', label: 'Карл' }],
-        text: 'Брат, ты опять за своё? У нас планов выше крыши!',
-      },
-      {
-        speaker: 'Освальд',
-        text: 'Да-да, я уже, просто дела внизу... они тянут меня обратно.',
-      },
-    ],
-  },
-  {
-    id: 'lower-town-clash',
-    title: 'Стычка внизу',
-    lines: [
-      {
-        background: 'LowerTown2',
-        speaker: 'Нарратор',
-        text: 'Тёмные переулки полны гомона, кто-то спорит, кто-то бьётся.',
-        objects: [
-          { texture: 'Osvald3', label: 'Освальд' },
-          { texture: 'Dryg1', label: 'Дрыг' },
-        ],
-      },
-      {
-        speaker: 'Дрыг',
-        text: 'Эй, ты что-то ищешь или просто решил получить?'
-      },
-      {
-        speaker: 'Освальд',
-        text: 'Не ищу проблем, но если они сами приходят...'
-      },
-      {
-        speaker: 'Дрыг',
-        text: 'Ха! Сначала ответь, чей ты? Или мы сами решим.',
-      },
-      {
-        speaker: 'Освальд',
-        text: 'У меня свои цели. Руки прочь.',
-      },
-      {
-        speaker: 'Бродяга',
-        objects: [{ texture: 'loh', label: 'Бродяга' }],
-        text: 'Парни, не кипятитесь... здесь уже стража шарит.'
-      },
-      {
-        speaker: 'Страж',
-        objects: [{ texture: 'war1', label: 'Страж' }],
-        text: 'Разойдись! Кто ещё хочет посидеть в кандалах?'
-      },
-      {
-        speaker: 'Освальд',
-        text: 'Шанс уйти целым — редкая привилегия, я воспользуюсь.'
-      }
-    ],
-  },
-  {
-    id: 'jobtown-meeting',
-    title: 'Рынок и смелые речи',
-    lines: [
-      {
-        background: 'Jobtown',
-        speaker: 'Нарратор',
-        text: 'В мастеровых кварталах оживлённая толпа слушает пламенный спор.',
-        objects: [
-          { texture: 'Shmir1', label: 'Шмир' },
-          { texture: 'Laur1', label: 'Лаур' },
-        ],
-      },
-      {
-        speaker: 'Шмир',
-        text: 'Клянусь молотами, мы не сдаёмся!'
-      },
-      {
-        speaker: 'Лаур',
-        text: 'Но что дальше? Вопросы остаются, а сила — у тех, кто готов слушать.'
-      },
-      {
-        speaker: 'Гануд',
-        objects: [{ texture: 'Ganud1', label: 'Гануд' }],
-        text: 'Разговоры — ветер. Нам нужен план и люди, иначе нас сметут.'
-      },
-      {
-        speaker: 'Освальд',
-        objects: [{ texture: 'Osvald4', label: 'Освальд' }],
-        text: 'Я вижу надежду. Мы можем объединить верх и низ, но придётся рискнуть.'
-      },
-    ],
-  },
-  {
-    id: 'podzalupie',
-    title: 'Последний спуск',
-    lines: [
-      {
-        background: 'Podzalupie',
-        speaker: 'Нарратор',
-        text: 'Подземный квартал встречает холодом и эхом капель.',
-        objects: [
-          { texture: 'Osvald4', label: 'Освальд' },
-          { texture: 'Ganud2', label: 'Гануд' },
-        ],
-      },
-      {
-        speaker: 'Гануд',
-        text: 'Ты уверен, что ответ найдём здесь?'
-      },
-      {
-        speaker: 'Освальд',
-        text: 'Если не здесь, то нигде. Демоны всегда прячутся под шумом города.'
-      },
-      {
-        speaker: 'Нарратор',
-        text: 'Шаг за шагом они растворяются в тени, готовые раскрыть последнее звено загадки.'
-      }
-    ],
-  },
-];
+const SOURCE_PATH = './Окончательное решение демонического вопроса.txt';
+
+const isBackgroundLine = (line) => line.trim().startsWith(':');
+const extractBackground = (line) => line.replace(':', '').trim();
+const extractSpeakerAndText = (line) => {
+  const match = line.match(/^\s*\[(.+?)\]\s*(.*)$/);
+  if (!match) return { speaker: 'Нарратор', text: line.trim() };
+  const [, speaker, text] = match;
+  return { speaker: speaker.trim() || 'Нарратор', text: text || '...' };
+};
+
+const pushLine = (lines, background, line) => {
+  if (!line.trim()) return;
+  if (isBackgroundLine(line)) return;
+  const { speaker, text } = extractSpeakerAndText(line);
+  lines.push({ background, speaker, text });
+};
+
+export const loadStory = async () => {
+  const response = await fetch(SOURCE_PATH);
+  const raw = await response.text();
+  const lines = raw.split(/\r?\n/);
+
+  const chapter = {
+    id: 'source',
+    title: 'Окончательное решение демонического вопроса',
+    lines: [],
+  };
+
+  let currentBackground = null;
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    if (isBackgroundLine(line)) {
+      currentBackground = extractBackground(line);
+      continue;
+    }
+    pushLine(chapter.lines, currentBackground, line);
+  }
+
+  return [chapter];
+};
